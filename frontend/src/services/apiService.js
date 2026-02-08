@@ -98,7 +98,12 @@ class ApiService {
    * @returns {Promise<Object>} Response data
    */
   async get(endpoint, params = {}) {
-    const url = new URL(`${this.baseUrl}${endpoint}`);
+    // Handle relative URLs
+    const baseUrl = this.baseUrl.startsWith('http')
+      ? this.baseUrl
+      : `${window.location.origin}${this.baseUrl}`;
+
+    const url = new URL(`${baseUrl}${endpoint}`);
     Object.keys(params).forEach(key => {
       if (params[key] !== undefined && params[key] !== null) {
         url.searchParams.append(key, params[key]);

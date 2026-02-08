@@ -1,3 +1,0 @@
-"""
-Russian Letters Learning Module
-"""

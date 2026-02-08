@@ -17,8 +17,8 @@ export default function SmartReaderTTS() {
   
   const API_BASE_URL = import.meta.env.VITE_SMART_API_URL || 
     (import.meta.env.VITE_API_URL 
-      ? import.meta.env.VITE_API_URL.replace('/v1', '/smartkids')
-      : "https://alif-24.vercel.app/api/v1/smartkids");
+      ? `${import.meta.env.VITE_API_URL}/smartkids`
+      : "/api/v1/smartkids");
   
   useEffect(() => {
     if (showCamera && stream && videoRef.current) {
@@ -152,20 +152,28 @@ export default function SmartReaderTTS() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        <h2 className="text-4xl font-bold text-center mb-8 text-blue-600">
+        <h2 className="text-2xl sm:text-4xl font-bold text-center mb-8 text-blue-600 leading-tight">
           📘 AI bilan kitob o'qish
         </h2>
 
         {!showCamera && (
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+        <div className="flex flex-row flex-nowrap gap-4 justify-center mb-6">
           <button 
             onClick={openCamera}
-            className="px-8 py-3 bg-gradient-to-r from-blue-400 to-cyan-400 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
+            aria-label="Kamera"
+            title="Kamera"
+            className="px-5 py-3 sm:px-8 bg-gradient-to-r from-blue-400 to-cyan-400 text-white text-2xl sm:text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
           >
-            📷 Kamera ochish
+            <span className="sm:hidden">📷</span>
+            <span className="hidden sm:inline">📷 Kamera</span>
           </button>
-          <label className="px-8 py-3 bg-white text-purple-600 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer text-center">
-            📁 Fayl yuklash
+          <label
+            aria-label="Fayl yuklash"
+            title="Fayl yuklash"
+            className="px-5 py-3 sm:px-8 bg-white text-purple-600 text-2xl sm:text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer text-center"
+          >
+            <span className="sm:hidden">📁</span>
+            <span className="hidden sm:inline">📁 Fayl yuklash</span>
             <input
               ref={inputRef}
               type="file"

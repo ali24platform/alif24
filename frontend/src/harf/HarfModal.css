@@ -244,6 +244,12 @@
   width: 100%;
 }
 
+.assistant-error {
+  color: #d60000;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .ai-response-box p, .child-transcript-box p {
   margin: 0;
 }

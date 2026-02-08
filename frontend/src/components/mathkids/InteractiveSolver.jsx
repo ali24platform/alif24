@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./InteractiveSolver.css";
 
-const API_BASE_URL = import.meta.env.VITE_MATH_API_URL 
+const API_BASE_URL = import.meta.env.VITE_MATH_API_URL
   ? import.meta.env.VITE_MATH_API_URL
-  : "https://alif-24.vercel.app/api/v1/mathkids";
+  : (import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/mathkids`
+    : "/api/v1/mathkids");
 
 export default function InteractiveSolver({ problem, gradeLevel, onBack }) {
   const [currentStep, setCurrentStep] = useState(0);

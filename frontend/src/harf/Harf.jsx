@@ -22,7 +22,7 @@ const items = [
   },
   { 
     label: "D d", 
-    image: "🌊",
+    image: "📓",
     examples: [ "Dengiz", "Daftar"],
     exampleImages: [ "🌊", "📓"]
   },

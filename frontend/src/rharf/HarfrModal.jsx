@@ -3,9 +3,22 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X } from "lucide-react";
-import axios from 'axios';
+import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 import "./HarfrModal.css";
-import VoiceAssistant from "../components/VoiceAssistant";
+
+// Set `VITE_RHARF_DEBUG=1` (or `VITE_HARF_DEBUG=1`) to enable verbose logs.
+const RHARF_DEBUG =
+    (import.meta.env?.VITE_RHARF_DEBUG || "") === "1" ||
+    (import.meta.env?.VITE_HARF_DEBUG || "") === "1";
+const rharfLog = (...args) => {
+    if (RHARF_DEBUG) console.log(...args);
+};
+const rharfWarn = (...args) => {
+    if (RHARF_DEBUG) console.warn(...args);
+};
+const rharfDebug = (...args) => {
+    if (RHARF_DEBUG) console.debug(...args);
+};
 
 const HarfrModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChange, onTranscriptConsumed, onComplete }) => {
     const [modalState, setModalState] = useState('initial');
@@ -15,35 +28,197 @@ const HarfrModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChang
     const [currentIndex, setCurrentIndex] = useState(-1);
     const [earnedStars, setEarnedStars] = useState(0);
 
+    // Fast STT (Azure Speech SDK)
+    const [isListening, setIsListening] = useState(false);
+    const [sttError, setSttError] = useState('');
+
+    const speechConfigRef = useRef(null);
+    const recognizerRef = useRef(null);
+    const speechInitInProgressRef = useRef(false);
+    const speechInitPromiseRef = useRef(null);
+
+    // Keep latest callbacks without re-triggering effects on identity changes
+    const onAskStateChangeRef = useRef(null);
+    const onTranscriptConsumedRef = useRef(null);
+
+    // Prevent re-processing the same transcript
+    const lastHandledTranscriptKeyRef = useRef(null);
+
     const audioQueueRef = useRef([]);
     const isProcessingQueueRef = useRef(false);
+    const synthesizerRef = useRef(null);
     const audioContextRef = useRef(null);
+    const audioSourceRef = useRef(null);
+    const htmlAudioRef = useRef(null);
+    const htmlAudioUrlRef = useRef(null);
 
-    // Функция для чтения русского текста с правильным произношением
-    function readRussianText(text) {
-        if (!text) return text;
-        
-        // Замены для правильного произношения букв
-        const replacements = {
-            'а': 'а', 'б': 'бэ', 'в': 'вэ', 'г': 'гэ', 'д': 'дэ',
-            'е': 'йе', 'ё': 'йо', 'ж': 'жэ', 'з': 'зэ', 'и': 'и',
-            'й': 'и краткое', 'к': 'ка', 'л': 'эль', 'м': 'эм', 'н': 'эн',
-            'о': 'о', 'п': 'пэ', 'р': 'эр', 'с': 'эс', 'т': 'тэ',
-            'у': 'у', 'ф': 'эф', 'х': 'ха', 'ц': 'цэ', 'ч': 'че',
-            'ш': 'ша', 'щ': 'ща', 'ъ': 'твёрдый знак', 'ы': 'ы',
-            'ь': 'мягкий знак', 'э': 'э', 'ю': 'ю', 'я': 'я'
-        };
-        
-        let result = '';
-        for (let char of text.toLowerCase()) {
-            if (replacements[char]) {
-                result += replacements[char] + ' ';
-            } else {
-                result += char;
+    useEffect(() => {
+        onAskStateChangeRef.current = onAskStateChange;
+        onTranscriptConsumedRef.current = onTranscriptConsumed;
+    }, [onAskStateChange, onTranscriptConsumed]);
+
+    // --- API endpoints ---
+    const SMARTKIDS_API_BASE = import.meta.env.VITE_API_URL
+        ? `${import.meta.env.VITE_API_URL}/smartkids`
+        : "/api/v1/smartkids";
+
+    const SPEECH_TOKEN_ENDPOINT = `${SMARTKIDS_API_BASE}/speech-token`;
+
+    const ensureSpeechConfig = useCallback(async () => {
+        if (speechConfigRef.current) return true;
+
+        if (speechInitPromiseRef.current) {
+            try {
+                await speechInitPromiseRef.current;
+            } catch (_) {
+                // ignore
             }
+            return !!speechConfigRef.current;
         }
-        return result.trim();
-    }
+
+        speechInitInProgressRef.current = true;
+        const initPromise = (async () => {
+            const resp = await fetch(SPEECH_TOKEN_ENDPOINT);
+            if (!resp.ok) throw new Error(`speech-token failed: ${resp.status}`);
+            const data = await resp.json();
+            const cfg = SpeechSDK.SpeechConfig.fromAuthorizationToken(data.token, data.region);
+            cfg.speechRecognitionLanguage = 'ru-RU';
+            cfg.speechSynthesisVoiceName = 'ru-RU-SvetlanaNeural';
+            try {
+                cfg.setSpeechSynthesisOutputFormat(
+                    SpeechSDK.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3
+                );
+            } catch (_) {}
+            speechConfigRef.current = cfg;
+        })();
+
+        speechInitPromiseRef.current = initPromise;
+        try {
+            await initPromise;
+            return true;
+        } catch (e) {
+            console.error('❌ [HarfrModal] Speech config init failed:', e);
+            setSttError("Не удалось инициализировать распознавание речи.");
+            return false;
+        } finally {
+            speechInitPromiseRef.current = null;
+            speechInitInProgressRef.current = false;
+        }
+    }, [SPEECH_TOKEN_ENDPOINT]);
+
+    const hardStopTts = useCallback(() => {
+        // Stop WebAudio playback
+        try {
+            if (audioSourceRef.current) {
+                try { audioSourceRef.current.onended = null; } catch (_) {}
+                try { audioSourceRef.current.stop(0); } catch (_) {}
+                try { audioSourceRef.current.disconnect(); } catch (_) {}
+            }
+        } catch (_) {}
+        audioSourceRef.current = null;
+
+        // Stop HTMLAudio playback
+        try {
+            const a = htmlAudioRef.current;
+            if (a) {
+                try { a.pause(); } catch (_) {}
+                try { a.currentTime = 0; } catch (_) {}
+                try { a.src = ''; } catch (_) {}
+            }
+        } catch (_) {}
+        htmlAudioRef.current = null;
+        try {
+            if (htmlAudioUrlRef.current) {
+                URL.revokeObjectURL(htmlAudioUrlRef.current);
+            }
+        } catch (_) {}
+        htmlAudioUrlRef.current = null;
+
+        const currentSynth = synthesizerRef.current;
+        if (currentSynth) {
+            try {
+                if (typeof currentSynth.stopSpeakingAsync === 'function') {
+                    currentSynth.stopSpeakingAsync(
+                        () => {
+                            try { currentSynth.close(); } catch (_) {}
+                        },
+                        () => {
+                            try { currentSynth.close(); } catch (_) {}
+                        }
+                    );
+                } else {
+                    currentSynth.close();
+                }
+            } catch (_) {
+                try { currentSynth.close(); } catch (_) {}
+            }
+            synthesizerRef.current = null;
+        }
+    }, []);
+
+    const stopRecognizer = useCallback(() => {
+        try {
+            recognizerRef.current?.stopContinuousRecognitionAsync?.();
+        } catch (_) {}
+        try {
+            recognizerRef.current?.close?.();
+        } catch (_) {}
+        recognizerRef.current = null;
+        setIsListening(false);
+    }, []);
+
+    const startListeningOnce = useCallback(async () => {
+        if (modalState !== 'asking') return;
+        if (isListening) return;
+
+        setSttError('');
+        setChildTranscript('');
+        lastHandledTranscriptKeyRef.current = null;
+
+        const ok = await ensureSpeechConfig();
+        if (!ok || !speechConfigRef.current) return;
+
+        try {
+            setIsListening(true);
+
+            try { recognizerRef.current?.close?.(); } catch (_) {}
+            recognizerRef.current = null;
+
+            const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
+            const recognizer = new SpeechSDK.SpeechRecognizer(speechConfigRef.current, audioConfig);
+            recognizerRef.current = recognizer;
+
+            recognizer.recognizeOnceAsync(
+                (result) => {
+                    setIsListening(false);
+                    try { recognizer.close(); } catch (_) {}
+                    if (recognizerRef.current === recognizer) recognizerRef.current = null;
+
+                    const text = (result?.text || '').trim();
+                    if (result?.reason === SpeechSDK.ResultReason.RecognizedSpeech && text) {
+                        setChildTranscript(text);
+                        return;
+                    }
+                    if (result?.reason === SpeechSDK.ResultReason.NoMatch) {
+                        setSttError("Речь не распознана. Попробуйте ещё раз.");
+                        return;
+                    }
+                    setSttError("Ошибка распознавания речи.");
+                },
+                (err) => {
+                    console.error('❌ [HarfrModal] STT recognizeOnceAsync error:', err);
+                    setIsListening(false);
+                    try { recognizer.close(); } catch (_) {}
+                    if (recognizerRef.current === recognizer) recognizerRef.current = null;
+                    setSttError("Ошибка микрофона или STT.");
+                }
+            );
+        } catch (e) {
+            console.error('❌ [HarfrModal] startListeningOnce failed:', e);
+            setIsListening(false);
+            setSttError("Не удалось открыть микрофон. Проверьте разрешения.");
+        }
+    }, [ensureSpeechConfig, isListening, modalState]);
 
     // Функция для нормализации русского текста для TTS
     function normalizeRussianForTTS(text) {
@@ -78,12 +253,13 @@ const HarfrModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChang
     // Функция для получения текста вопроса
     function getQuestionText(letter) {
         const l = (letter || '').toLowerCase();
+        const spoken = getLetterPronunciation(l);
         // Для ъ, ь, ы — особая формулировка
         if (['ъ', 'ь', 'ы'].includes(l)) {
-            return `Назови слово, в котором участвует ${l}.`;
+            return `Назови слово, в котором участвует ${spoken}.`;
         }
         // В остальных случаях — начинается на букву
-        return `Назови слово, которое начинается на букву ${l}.`;
+        return `Назови слово, которое начинается на букву ${spoken}.`;
     }
 
     // Функция для проверки, начинается ли слово с нужной буквы
@@ -105,20 +281,12 @@ const HarfrModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChang
     }
 
     // Детекция типа аудио
-    function detectAudioMime(arrayBuffer) {
-        try {
-            const bytes = new Uint8Array(arrayBuffer.slice(0, 12));
-            const str4 = (i) => String.fromCharCode(bytes[i], bytes[i+1], bytes[i+2], bytes[i+3]);
-            if (str4(0) === 'RIFF' && str4(8) === 'WAVE') return 'audio/wav';
-            if (str4(0) === 'OggS') return 'audio/ogg';
-            // MP3: ID3 tag or MPEG frame sync (0xFF 0xFB)
-            if (str4(0) === 'ID3' || (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0)) return 'audio/mpeg';
-            return 'audio/wav';
-        } catch { return 'audio/wav'; }
-    }
+    const processAudioQueue = useCallback(async () => {
+        rharfDebug('🔄 [HarfrModal] processAudioQueue', {
+            queueLength: audioQueueRef.current.length,
+            isProcessing: isProcessingQueueRef.current,
+        });
 
-    // Обработка аудио очереди
-    async function processAudioQueue() {
         if (isProcessingQueueRef.current || audioQueueRef.current.length === 0) {
             return;
         }
@@ -126,112 +294,130 @@ const HarfrModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChang
         setIsPlaying(true);
 
         let { text, onStart, onEnd } = audioQueueRef.current.shift();
-        
-        // Нормализуем русский текст для TTS
         text = normalizeRussianForTTS(text);
 
         try {
-            const RHARF_API_BASE = import.meta.env.VITE_RHARF_API_BASE || 'http://localhost:8000/r';
-            
-            if (!RHARF_API_BASE) {
-                throw new Error('Базовый URL API не настроен. Установите VITE_HARF_API_BASE в frontend/.env');
-            }
-            
-            const response = await axios.post(
-                `${RHARF_API_BASE}/text-to-speech`,
-                { 
-                    text: text,
-                    language: 'ru-RU'
-                },
-                { 
-                    responseType: 'arraybuffer', 
-                    timeout: 10000, 
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'audio/wav, audio/mpeg, audio/ogg' 
-                    } 
-                }
-            );
-            
-            const arrayBuffer = response.data;
+            if (onStart) onStart();
+
+            const ok = await ensureSpeechConfig();
+            if (!ok || !speechConfigRef.current) throw new Error('Speech config not initialized');
+
+            hardStopTts();
+
+            rharfLog('📤 [HarfrModal] Azure Speech SDK TTS:', text);
+
+            const pullStream = SpeechSDK.AudioOutputStream.createPullStream();
+            const sdkAudioConfig = SpeechSDK.AudioConfig.fromStreamOutput(pullStream);
+            const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfigRef.current, sdkAudioConfig);
+            synthesizerRef.current = synthesizer;
+
+            const audioArrayBuffer = await new Promise((resolve, reject) => {
+                synthesizer.speakTextAsync(
+                    text,
+                    (result) => {
+                        try { synthesizer.close(); } catch (_) {}
+                        if (synthesizerRef.current === synthesizer) synthesizerRef.current = null;
+
+                        const data = result?.audioData;
+                        if (!data) {
+                            reject(new Error('Empty audioData'));
+                            return;
+                        }
+                        if (data instanceof ArrayBuffer) {
+                            resolve(data.slice(0));
+                            return;
+                        }
+                        if (data?.buffer instanceof ArrayBuffer) {
+                            resolve(data.buffer.slice(0));
+                            return;
+                        }
+                        reject(new Error('Unknown audioData type'));
+                    },
+                    (err) => {
+                        try { synthesizer.close(); } catch (_) {}
+                        if (synthesizerRef.current === synthesizer) synthesizerRef.current = null;
+                        reject(err || new Error('TTS failed'));
+                    }
+                );
+            });
 
             if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
                 audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
             }
-            
             if (audioContextRef.current.state === 'suspended') {
-                await audioContextRef.current.resume().catch(() => { return; });
+                try { await audioContextRef.current.resume(); } catch (_) {}
             }
 
             try {
-                const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-                const source = audioContextRef.current.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(audioContextRef.current.destination);
+                const decoded = await audioContextRef.current.decodeAudioData(audioArrayBuffer.slice(0));
+                const src = audioContextRef.current.createBufferSource();
+                src.buffer = decoded;
+                src.connect(audioContextRef.current.destination);
+                audioSourceRef.current = src;
 
-                if (onStart) onStart();
-
-                source.onended = () => {
-                    console.log('🎵 [HarfrModal] Audio ended, waiting 300ms before next');
-                    if (onEnd) onEnd();
+                src.onended = () => {
+                    if (audioSourceRef.current === src) audioSourceRef.current = null;
+                    try { if (onEnd) onEnd(); } catch (_) {}
                     isProcessingQueueRef.current = false;
-                    setTimeout(() => processAudioQueue(), 300);
+                    setIsPlaying(false);
+                    setTimeout(() => processAudioQueue(), 200);
                 };
-                source.start(0);
+                src.start(0);
+                return;
             } catch (decodeErr) {
-                console.debug('Ошибка декодирования WebAudio, используем fallback <audio>');
-                try {
-                    const mime = detectAudioMime(arrayBuffer);
-                    const blob = new Blob([arrayBuffer], { type: mime });
-                    const url = URL.createObjectURL(blob);
-                    const audio = new Audio();
-                    audio.preload = 'auto';
-                    audio.src = url;
-                    
-                    if (onStart) onStart();
-                    
-                    const cleanup = () => { 
-                        try { URL.revokeObjectURL(url); } catch { /* noop */ } 
-                    };
-                    
-                    audio.addEventListener('ended', () => {
-                        console.log('🎵 [HarfrModal] Audio ended (HTML5), waiting 300ms before next');
-                        cleanup();
-                        if (onEnd) onEnd();
-                        isProcessingQueueRef.current = false;
-                        setTimeout(() => processAudioQueue(), 300);
-                    });
-                    
-                    audio.addEventListener('error', () => {
-                        console.error('🎵 [HarfrModal] Audio error, waiting 300ms before next');
-                        cleanup();
-                        isProcessingQueueRef.current = false;
-                        setTimeout(() => processAudioQueue(), 300);
-                    });
-                    
-                    await new Promise((resolve) => {
-                        const onReady = () => { 
-                            audio.removeEventListener('canplaythrough', onReady); 
-                            resolve(); 
-                        };
-                        audio.addEventListener('canplaythrough', onReady);
-                        try { audio.load(); } catch { /* noop */ }
-                    });
-                    
-                    await audio.play();
-                } catch (htmlErr) {
-                    console.error('🎵 [HarfrModal] HTML audio playback error:', htmlErr);
-                    isProcessingQueueRef.current = false;
-                    setTimeout(() => processAudioQueue(), 300);
-                }
+                rharfDebug('[HarfrModal] WebAudio decode failed, fallback to HTMLAudio', decodeErr);
             }
 
+            const blob = new Blob([audioArrayBuffer], { type: 'audio/mpeg' });
+            const url = URL.createObjectURL(blob);
+            htmlAudioUrlRef.current = url;
+
+            const audio = new Audio();
+            htmlAudioRef.current = audio;
+            audio.preload = 'auto';
+            audio.src = url;
+            audio.onended = () => {
+                try { URL.revokeObjectURL(url); } catch (_) {}
+                if (htmlAudioUrlRef.current === url) htmlAudioUrlRef.current = null;
+                if (htmlAudioRef.current === audio) htmlAudioRef.current = null;
+                try { if (onEnd) onEnd(); } catch (_) {}
+                isProcessingQueueRef.current = false;
+                setIsPlaying(false);
+                setTimeout(() => processAudioQueue(), 200);
+            };
+            audio.onerror = () => {
+                try { URL.revokeObjectURL(url); } catch (_) {}
+                if (htmlAudioUrlRef.current === url) htmlAudioUrlRef.current = null;
+                if (htmlAudioRef.current === audio) htmlAudioRef.current = null;
+                isProcessingQueueRef.current = false;
+                setIsPlaying(false);
+                setTimeout(() => processAudioQueue(), 200);
+            };
+
+            try {
+                await audio.play();
+            } catch (playErr) {
+                console.error('❌ [HarfrModal] HTMLAudio play blocked/failed:', playErr);
+                try { URL.revokeObjectURL(url); } catch (_) {}
+                if (htmlAudioUrlRef.current === url) htmlAudioUrlRef.current = null;
+                if (htmlAudioRef.current === audio) htmlAudioRef.current = null;
+                isProcessingQueueRef.current = false;
+                setIsPlaying(false);
+                setTimeout(() => processAudioQueue(), 200);
+            }
         } catch (error) {
-            console.error('🎵 [HarfrModal] TTS synthesis error:', error);
+            console.error('❌ [HarfrModal] TTS error:', error?.message || error);
+
+            try {
+                if (onStart) onStart();
+                if (onEnd) onEnd();
+            } catch (_) {}
+
             isProcessingQueueRef.current = false;
+            setIsPlaying(false);
             setTimeout(() => processAudioQueue(), 300);
         }
-    }
+    }, [ensureSpeechConfig, hardStopTts]);
 
     const speakText = useCallback((text, onStart, onEnd) => {
         audioQueueRef.current.push({ 
@@ -243,100 +429,120 @@ const HarfrModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChang
         if (!isProcessingQueueRef.current) {
             processAudioQueue();
         }
-    }, []);
+    }, [processAudioQueue]);
 
     // Основная последовательность чтения
     const startReadingSequence = useCallback(() => {
         if (!card) return;
 
-        console.log('🔵 [HarfrModal] Starting reading sequence for:', card);
+        rharfDebug('🎬 [HarfrModal] Starting reading sequence for:', card?.label);
         setModalState('reading');
         audioQueueRef.current = [];
+        isProcessingQueueRef.current = false;
         
         const parts = (card.label || '').split(' ');
         const smallLetter = (parts.length > 1 ? parts[1] : parts[0]);
         const letterPronunciation = getLetterPronunciation(smallLetter);
-
-        console.log('🎵 TTS Queue (ru): Starting with letter:', smallLetter, 'pronunciation:', readRussianText(smallLetter));
         
         // Произносим букву
         speakText(
-            readRussianText(smallLetter), 
+            `${letterPronunciation}`, 
             () => setCurrentIndex(-1)
         );
 
-        console.log('🔵 [HarfrModal] Examples array:', card.examples);
-        console.log('🔵 [HarfrModal] Examples count:', card.examples?.length || 0);
+        if (!card.examples || card.examples.length === 0) {
+            rharfWarn('⚠️ [HarfrModal] No examples in card');
+            return;
+        }
 
         // Произносим примеры
         card.examples.forEach((example, index) => {
-            console.log(`🎵 TTS Queue (ru): Adding example ${index + 1}:`, example);
+            rharfDebug(`🎵 [HarfrModal] Adding example ${index + 1}:`, example);
             speakText(
                 example,
                 () => {
-                    console.log(`▶️ [HarfrModal] Playing example ${index + 1}:`, example);
+                    rharfDebug(`▶️ [HarfrModal] Playing example ${index + 1}:`, example);
                     setCurrentIndex(index);
                 },
                 index === card.examples.length - 1 ? () => {
-                    console.log('✅ [HarfrModal] All examples completed, asking question');
+                    rharfDebug('✅ [HarfrModal] All examples completed, asking question');
                     setCurrentIndex(-1);
                     const question = getQuestionText(smallLetter);
-                    console.log('❓ [HarfrModal] Question:', question);
+                    rharfDebug('❓ [HarfrModal] Question:', question);
                     speakText(question, null, () => {
-                        console.log('✅ [HarfrModal] Question completed, switching to asking mode');
+                        rharfDebug('🎤 [HarfrModal] Ready for answer');
                         setIsPlaying(false);
                         setModalState('asking');
-                        if (onAskStateChange) onAskStateChange(true, smallLetter);
+                        try { onAskStateChangeRef.current?.(false); } catch (_) {}
                     });
                 } : null
             );
         });
-        
-        console.log('📋 [HarfrModal] Total items in queue:', audioQueueRef.current.length);
-    }, [card, speakText, onAskStateChange]);
+
+        rharfDebug('📋 [HarfrModal] Total items in queue:', audioQueueRef.current.length);
+    }, [card, speakText]);
 
     // Эффекты
     useEffect(() => {
         if (isOpen && card) {
-            // Подготавливаем AudioContext
-            try {
-                if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-                    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioContextRef.current.state === 'suspended') {
-                    audioContextRef.current.resume().catch(() => { /* noop */ });
-                }
-            } catch { /* noop */ }
+            // Reset states first
+            setModalState('initial');
+            setAiResponse('');
+            setChildTranscript('');
+            setIsPlaying(false);
+            setCurrentIndex(-1);
+            setEarnedStars(0);
+            audioQueueRef.current = [];
+            isProcessingQueueRef.current = false;
+            setSttError('');
+            setIsListening(false);
+            lastHandledTranscriptKeyRef.current = null;
 
-            startReadingSequence();
-            return () => {};
+            // Warm up speech config
+            ensureSpeechConfig();
+
+            const timer = setTimeout(() => {
+                startReadingSequence();
+            }, 100);
+
+            return () => clearTimeout(timer);
         }
         
         if (!isOpen) {
             audioQueueRef.current = [];
             isProcessingQueueRef.current = false;
-            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-                audioContextRef.current.close();
-                audioContextRef.current = null;
-            }
-            
-            setTimeout(() => {
-                setModalState('initial');
-                setAiResponse('');
-                setChildTranscript('');
-                setIsPlaying(false);
-                setCurrentIndex(-1);
-                setEarnedStars(0);
-                if (onAskStateChange) onAskStateChange(false);
-            }, 0);
+            setModalState('initial');
+            setAiResponse('');
+            setChildTranscript('');
+            setIsPlaying(false);
+            setCurrentIndex(-1);
+            setEarnedStars(0);
+            stopRecognizer();
+            hardStopTts();
+            try { onAskStateChangeRef.current?.(false); } catch (_) {}
+            lastHandledTranscriptKeyRef.current = null;
         }
-    }, [isOpen, card?.label]);
+    }, [isOpen, card?.label, ensureSpeechConfig, startReadingSequence, stopRecognizer, hardStopTts]);
+
+    // Unmount cleanup
+    useEffect(() => {
+        return () => {
+            stopRecognizer();
+            hardStopTts();
+        };
+    }, [stopRecognizer, hardStopTts]);
 
     // Обработка транскрипции
     useEffect(() => {
         const incoming = childTranscript || externalTranscript;
         if (modalState === 'asking' && incoming) {
             const transcript = incoming.trim();
+            const key = `${card?.label || ''}::${transcript}`;
+            if (lastHandledTranscriptKeyRef.current === key) {
+                return;
+            }
+            lastHandledTranscriptKeyRef.current = key;
+
             const partsForTarget = (card?.label || '').split(' ');
             const targetLetter = (partsForTarget.length > 1 ? partsForTarget[1] : partsForTarget[0]).toLowerCase();
             
@@ -384,7 +590,8 @@ const HarfrModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChang
                     
                     const history = JSON.parse(localStorage.getItem('harfrModal_starsHistory') || '[]');
                     history.push({
-                        letter: targetLetter || 'unknown',
+                        // IMPORTANT: store by card.label so Harfr.jsx can display stars per card
+                        letter: card?.label || 'unknown',
                         stars: stars,
                         timestamp: new Date().toISOString()
                     });
@@ -407,14 +614,11 @@ const HarfrModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChang
             
             speakText(responseText, null, () => {
                 setModalState('asking');
-                if (onAskStateChange) onAskStateChange(true, targetLetter);
-                setChildTranscript('');
-                if (onTranscriptConsumed) {
-                    try { onTranscriptConsumed(); } catch { /* noop */ }
-                }
+                try { onAskStateChangeRef.current?.(false); } catch (_) {}
+                try { onTranscriptConsumedRef.current?.(); } catch (_) {}
             });
         }
-    }, [childTranscript, externalTranscript, modalState, card, onAskStateChange, onTranscriptConsumed, speakText]);
+    }, [childTranscript, externalTranscript, modalState, card, speakText]);
 
     if (!isOpen || !card) return null;
 
@@ -499,12 +703,21 @@ const HarfrModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChang
                     )}
                     
                     <div className="assistant-inline">
-                        <VoiceAssistant
-                            enabled={modalState === 'asking'}
-                            onTranscript={(t) => setChildTranscript(t)}
-                            language="ru-RU"
-                            apiBase={import.meta.env.VITE_RHARF_API_BASE || 'http://localhost:8000/r'}
-                        />
+                        <button
+                            type="button"
+                            onClick={startListeningOnce}
+                            disabled={modalState !== 'asking' || isListening}
+                            className="reread-button"
+                            style={{ minWidth: 0 }}
+                            aria-label={isListening ? "Слушаю" : "Микрофон"}
+                            title={isListening ? "Слушаю" : "Микрофон"}
+                        >
+                            {isListening ? '🎙️ Слушаю...' : '🎤 Говорить'}
+                        </button>
+
+                        {sttError ? (
+                            <span className="assistant-error">{sttError}</span>
+                        ) : null}
                     </div>
                     
                     {modalState === 'asking' && (

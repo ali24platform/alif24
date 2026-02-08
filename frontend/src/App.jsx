@@ -26,6 +26,7 @@ import SmartAuthPrompt from './components/Auth/SmartAuthPrompt';
 import LoginModal from './components/Auth/LoginModal';
 import RegisterModal from './components/Auth/RegisterModal';
 import OrganizationDashboard from './pages/OrganizationDashboard';
+import SecretAdminLogin from './pages/SecretAdminLogin';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 import ErrorBoundary from './components/Common/ErrorBoundary';
@@ -159,6 +160,11 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* Secret Admin Routes - Only accessible via direct URL */}
+      <Route path="/nurali" element={<SecretAdminLogin />} />
+      <Route path="/hazratqul" element={<SecretAdminLogin />} />
+      <Route path="/pedagog" element={<SecretAdminLogin />} />
 
       {/* 404 Route */}
       <Route

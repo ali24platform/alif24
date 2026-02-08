@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const API_BASE_URL = import.meta.env.VITE_MATH_API_URL || 
-  (import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace('/v1', '/mathkids')
-    : "https://alif-24.vercel.app/api/v1/mathkids");
+const API_BASE_URL = import.meta.env.VITE_MATH_API_URL
+  ? import.meta.env.VITE_MATH_API_URL
+  : (import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/mathkids`
+    : "/api/v1/mathkids");
 
 function ImageCropper({ onTextExtracted }) {
   const [imageSrc, setImageSrc] = useState(null);
@@ -78,6 +79,16 @@ function ImageCropper({ onTextExtracted }) {
   // Kamerani to'liq ekranda ochish
   const handleOpenCamera = async () => {
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        alert("Kamera qo'llab-quvvatlanmaydi (browser mediaDevices yo'q).");
+        return;
+      }
+
+      if (!window.isSecureContext) {
+        alert("Kameradan foydalanish uchun xavfsiz kontekst (HTTPS yoki localhost) kerak.");
+        return;
+      }
+
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: 'environment',
@@ -94,7 +105,16 @@ function ImageCropper({ onTextExtracted }) {
       }
     } catch (err) {
       console.error('Kamera ochishda xato:', err);
-      alert('Kamera ochib bo\'lmadi. Iltimos, ruxsatni tekshiring.');
+      const errorName = err?.name;
+      if (errorName === 'NotAllowedError') {
+        alert("Kamera ruxsati berilmadi yoki yopib yuborildi. Browser sozlamalaridan kameraga ruxsat bering (lock ikonka → Camera → Allow).\nAgar oldin 'Block' qilgan bo'lsangiz, sahifani qayta yuklang.");
+      } else if (errorName === 'NotFoundError') {
+        alert("Kamera topilmadi. Qurilmada kamera borligini tekshiring.");
+      } else if (errorName === 'NotReadableError') {
+        alert("Kamerani ishga tushirib bo'lmadi. Boshqa ilova kameradan foydalanmayotganini tekshiring.");
+      } else {
+        alert("Kamera ochib bo'lmadi. Iltimos, ruxsat va qurilma sozlamalarini tekshiring.");
+      }
     }
   };
 
@@ -124,104 +144,26 @@ function ImageCropper({ onTextExtracted }) {
     setShowCamera(false);
   };
 
-  // Crop boshlanishi
-  const handleMouseDown = (e) => {
-    e.preventDefault();
-    const rect = cropContainerRef.current.getBoundingClientRect();
-    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
-    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
-    setIsDragging(true);
-    setDragStart({ x, y });
-    setCrop({ x, y, width: 0, height: 0 });
-  };
-
-  // Crop davom etishi
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const rect = cropContainerRef.current.getBoundingClientRect();
-    const x = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
-    const y = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
-    
-    setCrop({
-      x: Math.min(dragStart.x, x),
-      y: Math.min(dragStart.y, y),
-      width: Math.abs(x - dragStart.x),
-      height: Math.abs(y - dragStart.y)
-    });
-  };
-
-  // Crop tugashi
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Crop qilingan rasmni olish
-  const getCroppedImage = () => {
-    const canvas = canvasRef.current;
-    const img = imgRef.current;
-    const containerRect = cropContainerRef.current.getBoundingClientRect();
-    const imgRect = img.getBoundingClientRect();
-    
-    const scaleX = img.naturalWidth / imgRect.width;
-    const scaleY = img.naturalHeight / imgRect.height;
-    
-    const offsetX = (imgRect.left - containerRect.left);
-    const offsetY = (imgRect.top - containerRect.top);
-    
-    const cropX = (crop.x - offsetX) * scaleX;
-    const cropY = (crop.y - offsetY) * scaleY;
-    const cropWidth = crop.width * scaleX;
-    const cropHeight = crop.height * scaleY;
-
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
-
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(
-      img,
-      cropX,
-      cropY,
-      cropWidth,
-      cropHeight,
-      0,
-      0,
-      cropWidth,
-      cropHeight
-    );
-
-    return new Promise((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          resolve(blob);
-        },
-        'image/jpeg',
-        0.95
-      );
-    });
-  };
-
-  // Masalani ajratib olish
+  // Rasm yuklanganda avtomatik masala o'qish
+  useEffect(() => {
+    if (imageSrc) {
+      handleExtractProblem();
+    }
+  }, [imageSrc]);
   const handleExtractProblem = async () => {
     if (!imageSrc) {
-      alert('Iltimos, avval rasm tanlang!');
       return;
     }
 
     setLoading(true);
 
     try {
-      let imageBlob;
-
-      if (crop.width > 10 && crop.height > 10) {
-        imageBlob = await getCroppedImage();
-      } else {
-        const response = await fetch(imageSrc);
-        imageBlob = await response.blob();
-      }
-
+      // Base64 stringni Blob ga o'tkazish
+      const response = await fetch(imageSrc);
+      const blob = await response.blob();
+      
       const formData = new FormData();
-      formData.append('image', imageBlob, 'cropped-image.jpg');
+      formData.append('image', blob, 'image.jpg');
 
       const res = await fetch(`${API_BASE_URL}/image/read`, {
         method: 'POST',
@@ -238,13 +180,12 @@ function ImageCropper({ onTextExtracted }) {
         if (onTextExtracted) {
           onTextExtracted(data.text);
         }
-        alert('Masala muvaffaqiyatli o\'qildi!');
       } else {
-        alert(data.error || 'Masala o\'qishda xatolik');
+        console.error('Masala o\'qish xatosi:', data.error);
       }
     } catch (err) {
       console.error('Xato:', err);
-      alert(`Masala o'qishda xatolik: ${err.message}`);
+      alert("Serverga ulanib bo'lmadi. Agar localhostda ishlayotgan bo'lsangiz, API manzilini '/api/v1' orqali (Vite proxy) ishlatish kerak.");
     } finally {
       setLoading(false);
     }
@@ -263,21 +204,26 @@ function ImageCropper({ onTextExtracted }) {
   };
 
   return (
-    <div >
-      {/* Header */}
- 
-
+    <div>
       {/* Asosiy tugmalar */}
       {!showCamera && (
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+        <div className="flex flex-row flex-nowrap gap-4 justify-center mb-6">
           <button 
             onClick={handleOpenCamera}
-            className="px-8 py-3 bg-gradient-to-r from-blue-400 to-cyan-400 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
+            aria-label="Kamera"
+            title="Kamera"
+            className="px-5 py-3 sm:px-8 bg-gradient-to-r from-blue-400 to-cyan-400 text-white text-2xl sm:text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
           >
-            📷 Kamera ochish
+            <span className="sm:hidden">📷</span>
+            <span className="hidden sm:inline">📷 Kamera</span>
           </button>
-          <label className="px-8 py-3 bg-white text-purple-600 text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer text-center">
-            📁 Fayl yuklash
+          <label
+            aria-label="Fayl yuklash"
+            title="Fayl yuklash"
+            className="px-5 py-3 sm:px-8 bg-white text-purple-600 text-2xl sm:text-lg font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer text-center"
+          >
+            <span className="sm:hidden">📁</span>
+            <span className="hidden sm:inline">📁 Fayl yuklash</span>
             <input
               type="file"
               accept="image/*"
@@ -289,96 +235,52 @@ function ImageCropper({ onTextExtracted }) {
       )}
 
       {/* To'liq ekran kamera */}
-     {showCamera && (
-  <div className="fixed inset-0 bg-black z-50 flex flex-col">
-    <video
-      ref={videoRef}
-      autoPlay
-      muted
-      playsInline
-      className="flex-1 w-full h-full object-cover"
-    />
-    
-    {/* Yopish tugmasi - tepa ung burchakda */}
-    <button 
-      onClick={handleCloseCamera}
-      className="absolute top-0 right-0 text-white text-lg font-bold rounded-full shadow-lg hover:bg-red-600 transition-all duration-300"
-      style={{ paddingTop: '15px', paddingRight: '15px', margin: '15px' }}
-    >
-      ❌
-    </button>
+      {showCamera && (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="flex-1 w-full h-full object-cover"
+          />
+          
+          {/* Yopish tugmasi - tepa ung burchakda */}
+          <button 
+            onClick={handleCloseCamera}
+            className="absolute top-0 right-0 text-white text-lg font-bold rounded-full shadow-lg hover:bg-red-600 transition-all duration-300"
+            style={{ paddingTop: '15px', paddingRight: '15px', margin: '15px' }}
+          >
+            ❌
+          </button>
 
-    {/* Suratga olish tugmasi - pastda markazda */}
-    <div className="absolute bottom-0 left-0 right-0 flex justify-center" style={{ paddingBottom: '110px' }}>
-      <button 
-        onClick={handleCapture}
-        className="w-20 h-20 bg-gradient-to-r from-green-400 to-cyan-400 text-white text-3xl rounded-full shadow-2xl hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center"
-      >
-        📸
-      </button>
-    </div>
-  </div>
-)}
-      {/* Rasm kesish qismi */}
+          {/* Suratga olish tugmasi - pastda markazda */}
+          <div className="absolute bottom-0 left-0 right-0 flex justify-center" style={{ paddingBottom: '110px' }}>
+            <button 
+              onClick={handleCapture}
+              className="w-20 h-20 bg-gradient-to-r from-green-400 to-cyan-400 text-white text-3xl rounded-full shadow-2xl hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center"
+            >
+              📸
+            </button>
+          </div>
+        </div>
+      )}
+
+   
       {imageSrc && !showCamera && (
         <div className="space-y-5 pb-20">
-          <div 
-            ref={cropContainerRef}
-            className="bg-white p-5 rounded-2xl overflow-auto flex justify-center items-center relative select-none"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={handleMouseDown}
-            onTouchMove={handleMouseMove}
-            onTouchEnd={handleMouseUp}
-          >
-            <img
-              ref={imgRef}
-              src={imageSrc}
-              alt="Yuklangan rasm"
-              style={{ 
-                transform: `rotate(${rotation}deg)`,
-                maxWidth: '100%',
-                maxHeight: '500px'
-              }}
-              className="block pointer-events-none"
-            />
-            
-            {/* Crop overlay */}
-            {crop.width > 0 && crop.height > 0 && (
-              <div
-                className="absolute border-3 border-dashed border-purple-600 bg-purple-200/20 pointer-events-none"
-                style={{
-                  left: `${crop.x}px`,
-                  top: `${crop.y}px`,
-                  width: `${crop.width}px`,
-                  height: `${crop.height}px`
-                }}
-              >
-                <div className="absolute -top-1 -left-1 w-3 h-3 bg-purple-600 rounded-full"></div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-purple-600 rounded-full"></div>
-                <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-purple-600 rounded-full"></div>
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-purple-600 rounded-full"></div>
-              </div>
-            )}
-          </div>
-
-          <div className="text-center  text-black text-sm opacity-75">
-            💡 Masalani kesish uchun sichqoncha yoki barmoq bilan tortib belgilang
-          </div>
-
-          {/* Boshqaruv tugmalari */}
-          <div className="flex flex-wrap gap-3 justify-center p-5 bg-white/10 rounded-2xl">
-         
-            <button 
-              onClick={handleExtractProblem}
-              disabled={loading}
-              className="px-10 py-4 bg-gradient-to-r from-pink-400 to-red-500 text-white font-bold text-base rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              {loading ? '⏳ O\'qilmoqda...' : '🔍 Masalani o\'qish'}
-            </button>
-            <button 
+                    
+          {/* Loading holati */}
+          {loading && (
+            <div className="text-center mt-8">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+              <p className="text-gray-600 mt-4 text-lg">🔄 Matn aniqlanmoqda...</p>
+            </div>
+          )}
+          
+          {/* Tugmalar paneli */}
+          <div className="flex flex-wrap gap-3 justify-center">
+            <button
               onClick={handleResetImage}
               className="px-8 py-3 bg-white text-purple-600 border-2 border-purple-600 font-bold rounded-xl shadow-md hover:bg-purple-600 hover:text-white transform hover:-translate-y-1 transition-all duration-300"
             >

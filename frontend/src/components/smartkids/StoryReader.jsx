@@ -2,15 +2,116 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
 import { Mic, StopCircle, BookOpen, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLocation } from "react-router-dom";
 
 
 const API_BASE = import.meta.env.VITE_API_URL 
-  ? import.meta.env.VITE_API_URL.replace('/v1', '/smartkids') 
-  : "https://alif-24.vercel.app/api/v1/smartkids";
+  ? `${import.meta.env.VITE_API_URL}/smartkids` 
+  : "/api/v1/smartkids";
 
 const STORY_API_BASE = import.meta.env.VITE_API_URL 
-  ? import.meta.env.VITE_API_URL.replace('/v1', '/story') 
-  : "https://alif-24.vercel.app/api/v1/story";
+  ? `${import.meta.env.VITE_API_URL}/story` 
+  : "/api/v1/story";
+
+function PlayCircleIcon({ size = 20 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M10 8.5V15.5L16 12L10 8.5Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function PauseCircleIcon({ size = 20 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+      <rect x="9" y="8" width="2.5" height="8" fill="currentColor" />
+      <rect x="12.5" y="8" width="2.5" height="8" fill="currentColor" />
+    </svg>
+  );
+}
+
+function StopCircleIcon({ size = 20 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+      <rect x="9" y="9" width="6" height="6" fill="currentColor" rx="1" />
+    </svg>
+  );
+}
+
+function ReaderIcon({ size = 20 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M20 18c0-6 5.5-10 12-10s12 4 12 10"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M24 24c2-2 5-3 8-3s6 1 8 3"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16 52V34l16 6 16-6v18"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M16 34c6-3 12-3 16 0 4-3 10-3 16 0"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M32 40v16"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 export default function StoryReader({ storyText, age = 7 }) {
   const { user: authUser } = useAuth();
@@ -47,13 +148,90 @@ export default function StoryReader({ storyText, age = 7 }) {
   const streamRef = useRef(null);
 
   const synthesizerRef = useRef(null);
+  const speakerDestinationRef = useRef(null);
   const recognizerRef = useRef(null);
   const speechConfigRef = useRef(null);
   const isSpeakingRef = useRef(false);
   const mainTextFlagRef = useRef(false);
   const timerRef = useRef(null);
   const detectedLanguageRef = useRef(null);
+  const speechInitInProgressRef = useRef(false);
   const [languageError, setLanguageError] = useState(null);
+
+  const location = useLocation();
+  const lastRouteRef = useRef(`${location.pathname}${location.search}${location.hash}`);
+  const isMountedRef = useRef(false);
+
+  // TTS'ni darhol o'chirish (setState qilmaydi - safe for unload/unmount)
+  const hardStopTts = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    try {
+      speakerDestinationRef.current?.pause();
+    } catch (_) {}
+    try {
+      speakerDestinationRef.current?.close();
+    } catch (_) {}
+    speakerDestinationRef.current = null;
+
+    const currentSynth = synthesizerRef.current;
+    if (currentSynth) {
+      try {
+        if (typeof currentSynth.stopSpeakingAsync === "function") {
+          currentSynth.stopSpeakingAsync(
+            () => {
+              try {
+                currentSynth.close();
+              } catch (_) {}
+            },
+            () => {
+              try {
+                currentSynth.close();
+              } catch (_) {}
+            }
+          );
+        } else {
+          currentSynth.close();
+        }
+      } catch (_) {
+        try {
+          currentSynth.close();
+        } catch (_) {}
+      }
+      synthesizerRef.current = null;
+    }
+
+    isSpeakingRef.current = false;
+  }, []);
+
+  const fetchSpeechLanguageFromBackend = async (text) => {
+    if (!text || !text.trim()) return null;
+
+    try {
+      const res = await fetch(`${STORY_API_BASE}/detect-language`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`detect-language failed: ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (data?.code && data?.voice) {
+        return data;
+      }
+
+      return null;
+    } catch (e) {
+      console.warn("⚠️ Backend detect-language ishlamadi, fallback ishlatiladi", e);
+      return null;
+    }
+  };
 
   // Tilni aniqlash funksiyasi
   const detectLanguage = (text) => {
@@ -69,9 +247,16 @@ export default function StoryReader({ storyText, age = 7 }) {
     const russianCyrillic = /[а-яё]/;
     const russianCount = (sample.match(/[а-яё]/g) || []).length;
     
-    // O'zbek xarakterli harflar (lotin: o', g', sh, ch, ng; kiril: ў, қ, ғ, ҳ)
-    const uzbekSpecific = /[o'g'ўқғҳ]/;
-    const uzbekSpecificCount = (sample.match(/[o'g'ўқғҳ]/gi) || []).length;
+    // O'zbek xarakterli harflar (kiril: ў, қ, ғ, ҳ)
+    const uzbekKirilSpecificCount = (sample.match(/[ўқғҳ]/g) || []).length;
+    
+    // O'zbek lotin xarakterli pattern-lar (faqat apostrofli variantlar)
+    // Eslatma: sh/ch/ng ingliz tilida ham juda ko'p uchraydi, shuning uchun bu yerda ishlatmaymiz.
+    const uzbekLatinPatternCount = (sample.match(/o'|g'|o`|g`|oʻ|gʻ/gi) || []).length;
+    
+    // O'zbek xarakterli so'zlar (keng ro'yxat)
+    const uzbekWords = /\b(va|bilan|uchun|yoki|edi|emas|ham|ular|shu|bu|uning|bir|qildi|bo'lgan|bulgun|bo'lib|bo'ldi|qilib|keyin|oldin|hamma|bari|narsa|shunday|bunday|ana|mana|yaxshi|yomon|katta|kichik|yangi|eski|qiz|o'g'il|bola|odam|kishi|ota|ona|uy|maktab|shahar|qishloq|yashardi|yuzida|sochlari|mehribon|oqil|sinfdosh|itoatkor|porlab|tabassum|jingalak|sazovor|bajarardi)\b/gi;
+    const uzbekWordMatches = (sample.match(uzbekWords) || []).length;
     
     // O'zbek kiril harflar (ў, қ, ғ, ҳ bilan)
     const uzbekKiril = /[а-яёўқғҳ]/;
@@ -94,7 +279,9 @@ export default function StoryReader({ storyText, age = 7 }) {
     console.log("🔍 Til aniqlash statistikasi:", {
       russianSpecificCount,
       russianCount,
-      uzbekSpecificCount,
+      uzbekKirilSpecificCount,
+      uzbekLatinPatternCount,
+      uzbekWordMatches,
       uzbekKirilCount,
       englishCount,
       englishWordMatches,
@@ -105,20 +292,10 @@ export default function StoryReader({ storyText, age = 7 }) {
     
     if (totalLetters === 0) return null;
     
-    // 1. INGLIZ TILINI BIRINCHI TEKSHIRISH (eng muhim)
-    // Agar faqat lotin harflari bo'lsa va ingliz so'zlari ko'p bo'lsa
-    if (russianCount === 0 && uzbekKirilCount === 0 && englishCount > 0) {
-      console.log("🇺🇸 Faqat lotin harflari bor, ingliz so'zlarini tekshiramiz");
-      // Ingliz so'zlari yoki strukturalari mavjudligini tekshiramiz
-      if (englishWordMatches >= 2 || englishPatternMatches >= 1) {
-        console.log("🇺🇸 Ingliz tili aniqlandi (so'zlar/strukturalar asosida)");
-        return { code: 'en-US', voice: 'en-US-JennyNeural', name: 'Ingliz' };
-      }
-      // Agar lotin harflari 70% dan ko'p bo'lsa va kiril harflar yo'q bo'lsa
-      if (englishCount / totalLetters > 0.7) {
-        console.log("🇺🇸 Ingliz tili aniqlandi (harflar nisbati asosida)");
-        return { code: 'en-US', voice: 'en-US-JennyNeural', name: 'Ingliz' };
-      }
+    // 1. O'ZBEK TILINI BIRINCHI TEKSHIRISH (o'zbek so'zlari yoki pattern-lar bo'lsa)
+    if (uzbekWordMatches >= 2 || uzbekLatinPatternCount >= 2 || uzbekKirilSpecificCount > 0) {
+      console.log("🇺🇿 O'zbek tili aniqlandi (so'zlar/pattern-lar asosida)");
+      return { code: 'uz-UZ', voice: 'uz-UZ-MadinaNeural', name: "O'zbek" };
     }
     
     // 2. Rus tilini aniqlash (rus xarakterli harflar bor va kiril harflar ko'p)
@@ -127,22 +304,36 @@ export default function StoryReader({ storyText, age = 7 }) {
       return { code: 'ru-RU', voice: 'ru-RU-DariyaNeural', name: 'Rus' };
     }
     
-    // 3. O'zbek tilini aniqlash (o'zbek xarakterli harflar bor)
-    if (uzbekSpecificCount > 0) {
-      console.log("🇺🇿 O'zbek tili aniqlandi (xarakterli harflar)");
-      return { code: 'uz-UZ', voice: 'uz-UZ-MadinaNeural', name: "O'zbek" };
-    }
-    
-    // 4. O'zbek kiril (rus xarakterli harflar yo'q, lekin kiril harflar bor)
+    // 3. O'zbek kiril (rus xarakterli harflar yo'q, lekin kiril harflar bor)
     if (uzbekKirilCount > 0 && russianSpecificCount === 0 && uzbekKirilCount / totalLetters > 0.3) {
       console.log("🇺🇿 O'zbek kiril tili aniqlandi");
       return { code: 'uz-UZ', voice: 'uz-UZ-MadinaNeural', name: "O'zbek" };
     }
     
-    // 5. O'zbek lotin (o'zbek xarakterli harflar yo'q, lekin lotin harflar ko'p va ingliz so'zlari kam)
-    if (englishCount > 0 && englishWordMatches < 1 && englishPatternMatches === 0 && uzbekSpecificCount === 0 && englishCount / totalLetters > 0.5) {
-      console.log("🇺🇿 O'zbek lotin tili aniqlandi");
-      return { code: 'uz-UZ', voice: 'uz-UZ-MadinaNeural', name: "O'zbek" };
+    // 4. INGLIZ TILINI TEKSHIRISH
+    // Agar faqat lotin harflari bo'lsa va ingliz so'zlari ko'p bo'lsa
+    if (russianCount === 0 && uzbekKirilCount === 0 && englishCount > 0) {
+      console.log("🇺🇸 Faqat lotin harflari bor, ingliz so'zlarini tekshiramiz");
+      // Ingliz so'zlari yoki strukturalari mavjudligini tekshiramiz
+      if (englishWordMatches >= 2 || englishPatternMatches >= 1) {
+        console.log("🇺🇸 Ingliz tili aniqlandi (so'zlar/strukturalar asosida)");
+        return { code: 'en-US', voice: 'en-US-JennyNeural', name: 'Ingliz' };
+      }
+    }
+    
+    // 5. Lotin-only noaniq holat (uzbek pattern/so'zlar yo'q): defaultni inglizga og'diramiz
+    if (
+      russianCount === 0 &&
+      uzbekKirilCount === 0 &&
+      englishCount > 0 &&
+      uzbekWordMatches === 0 &&
+      uzbekLatinPatternCount === 0 &&
+      englishWordMatches === 0 &&
+      englishPatternMatches === 0 &&
+      englishCount / totalLetters > 0.5
+    ) {
+      console.log("🇺🇸 Lotin-only matn: default inglizga tanlandi");
+      return { code: 'en-US', voice: 'en-US-JennyNeural', name: 'Ingliz' };
     }
     
     // 6. Agar aniq aniqlanmasa, eng ko'p bo'lgan tilni qaytaramiz
@@ -164,14 +355,20 @@ export default function StoryReader({ storyText, age = 7 }) {
   // Speech Config'ni yaratish va tilni sozlash (backend'dan token olish)
   useEffect(() => {
     const initSpeechConfig = async () => {
+      if (speechInitInProgressRef.current) return;
+
+      // React StrictMode (dev) useEffect'ni 2 marta chaqirishi mumkin.
+      // Shu sabab init jarayonini bir marta ishlatamiz.
+      speechInitInProgressRef.current = true;
+
       if (!speechConfigRef.current) {
         try {
           console.log('🎤 Fetching speech token from backend...');
           
           // Backend'dan token olish
           const apiBase = import.meta.env.VITE_API_URL 
-            ? import.meta.env.VITE_API_URL.replace('/v1', '/smartkids') 
-            : "https://alif-24.vercel.app/api/v1/smartkids";
+            ? `${import.meta.env.VITE_API_URL}/smartkids` 
+            : "/api/v1/smartkids";
             
           const response = await fetch(`${apiBase}/speech-token`);
           
@@ -190,7 +387,7 @@ export default function StoryReader({ storyText, age = 7 }) {
           
           // Matn tilini aniqlash va sozlash
           if (storyText) {
-            const langInfo = detectLanguage(storyText);
+            const langInfo = (await fetchSpeechLanguageFromBackend(storyText)) || detectLanguage(storyText);
             if (langInfo) {
               detectedLanguageRef.current = langInfo;
               speechConfigRef.current.speechRecognitionLanguage = langInfo.code;
@@ -210,7 +407,11 @@ export default function StoryReader({ storyText, age = 7 }) {
           
         } catch (error) {
           console.error('❌ Failed to initialize speech config:', error);
+        } finally {
+          speechInitInProgressRef.current = false;
         }
+      } else {
+        speechInitInProgressRef.current = false;
       }
     };
     
@@ -327,7 +528,7 @@ export default function StoryReader({ storyText, age = 7 }) {
       const fluencyScore = readingAnalysisResult?.analysis?.fluency_feedback ? 80 : 70;
       const comprehensionScore = analyses.length > 0 ? 
         analyses.reduce((sum, a) => {
-          const score = a?.meaning_analysis?.includes('to\'g\'ri') ? 90 : 
+          const score = a?.meaning_analysis?.includes('toʻgʻri') ? 90 : 
                        a?.meaning_analysis?.includes('yaxshi') ? 80 : 70;
           return sum + score;
         }, 0) / analyses.length : 0;
@@ -356,7 +557,7 @@ export default function StoryReader({ storyText, age = 7 }) {
         expression_quality: answerQualityScore,
         total_questions: questionCount,
         correct_answers: analyses.filter(a => 
-          a?.meaning_analysis?.includes('to\'g\'ri')
+          a?.meaning_analysis?.includes('toʻgʻri')
         ).length,
         answer_quality_score: answerQualityScore,
         conversation_history: conversationHistory.slice(0, 10), // Oxirgi 10 ta
@@ -398,15 +599,52 @@ export default function StoryReader({ storyText, age = 7 }) {
     return [text];
   };
 
+  // Pauza holati (pause/resume to'g'ri ishlashi uchun)
+  const [isPaused, setIsPaused] = useState(false);
+  const isPausedRef = useRef(false);
+  const setPaused = (value) => {
+    isPausedRef.current = value;
+    setIsPaused(value);
+  };
+
   // TTS bilan matn aytish (useCallback bilan)
   const speakText = useCallback(async (text) => {
-    if (!speechConfigRef.current || isSpeakingRef.current) return;
+    if (!speechConfigRef.current || isSpeakingRef.current || isPausedRef.current) return;
     
     isSpeakingRef.current = true;
     setIsSpeaking(true);
     
-    // Standart AudioConfig (karnayga chiqarish)
-    const audioConfig = SpeechSDK.AudioConfig.fromDefaultSpeakerOutput();
+    // Audio'ni boshqarish uchun SpeakerAudioDestination ishlatamiz
+    // (stop bosilganda darhol audio'ni o'chirish uchun)
+    try {
+      speakerDestinationRef.current?.close();
+    } catch (_) {}
+    speakerDestinationRef.current = null;
+
+    const speakerDestination = new SpeechSDK.SpeakerAudioDestination();
+    speakerDestinationRef.current = speakerDestination;
+
+    // Audio jismonan tugaganda shu event keladi
+    speakerDestination.onAudioEnd = () => {
+      if (isPausedRef.current) return;
+
+      isSpeakingRef.current = false;
+      setIsSpeaking(false);
+
+      try {
+        synthesizerRef.current?.close();
+      } catch (_) {}
+      synthesizerRef.current = null;
+
+      try {
+        speakerDestinationRef.current?.close();
+      } catch (_) {}
+      speakerDestinationRef.current = null;
+
+      setAudioQueue((prev) => prev.slice(1));
+    };
+
+    const audioConfig = SpeechSDK.AudioConfig.fromSpeakerOutput(speakerDestination);
     
     // Yangi sintezator yaratamiz
     const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfigRef.current, audioConfig);
@@ -417,32 +655,7 @@ export default function StoryReader({ storyText, age = 7 }) {
       (result) => {
         if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
           console.log("📝 Sintez tugadi. Audio uzunligi (ticks):", result.audioDuration);
-          
-          // Audio davomiyligini hisoblash (10,000,000 ticks = 1 sekund)
-          // Qisqa bufer qo'shamiz (100ms) - to'xtashsiz o'qish uchun
-          const durationInSeconds = result.audioDuration / 10000000;
-          const waitTimeMs = (durationInSeconds * 1000) + 100;
-          
-          console.log(`⏳ Kutish vaqti: ${waitTimeMs}ms (${durationInSeconds}s)`);
-          
-          // Audio butunlay tugashini kutish uchun taymer
-          if (timerRef.current) clearTimeout(timerRef.current);
-          
-          timerRef.current = setTimeout(() => {
-            console.log("✅ Audio jismonan tugadi (Timer Finished):", text.substring(0, 30));
-            
-            isSpeakingRef.current = false;
-            setIsSpeaking(false);
-            
-            if (synthesizerRef.current) {
-              synthesizerRef.current.close();
-              synthesizerRef.current = null;
-            }
-            
-            // Navbatdan olib tashlash
-            setAudioQueue(prev => prev.slice(1));
-          }, waitTimeMs);
-          
+          // Navbatni siljitish SpeakerAudioDestination.onAudioEnd orqali bo'ladi
         } else {
           console.error("⚠️ Sintez bekor qilindi:", result.errorDetails);
           isSpeakingRef.current = false;
@@ -451,6 +664,13 @@ export default function StoryReader({ storyText, age = 7 }) {
             synthesizerRef.current.close();
             synthesizerRef.current = null;
           }
+          try {
+            speakerDestinationRef.current?.close();
+          } catch (_) {}
+          speakerDestinationRef.current = null;
+
+          // Xato bo'lsa ham stuck bo'lib qolmasin
+          setAudioQueue((prev) => prev.slice(1));
         }
       },
       (err) => {
@@ -461,12 +681,21 @@ export default function StoryReader({ storyText, age = 7 }) {
           synthesizerRef.current.close();
           synthesizerRef.current = null;
         }
+        try {
+          speakerDestinationRef.current?.close();
+        } catch (_) {}
+        speakerDestinationRef.current = null;
+
+        // Xato bo'lsa ham stuck bo'lib qolmasin
+        setAudioQueue((prev) => prev.slice(1));
       }
     );
   }, []); // Removed specific deps as they are refs or stable
 
   // Audio navbatini boshqarish
   useEffect(() => {
+    if (isPausedRef.current) return;
+
     if (audioQueue.length > 0 && !isSpeakingRef.current) {
       const nextText = audioQueue[0];
       speakText(nextText);
@@ -476,7 +705,7 @@ export default function StoryReader({ storyText, age = 7 }) {
       setAudioQueue([pendingQuestion]);
       setPendingQuestion("");
     }
-  }, [audioQueue, speakText, pendingQuestion]);
+  }, [audioQueue, speakText, pendingQuestion, isPaused]);
 
   // Hikoya tugaganini aniqlash (Audioqueue bo'sh va o'qish rejimi yoqilgan bo'lsa)
   useEffect(() => {
@@ -515,8 +744,11 @@ export default function StoryReader({ storyText, age = 7 }) {
       return;
     }
     
-    // Tilni aniqlash va sozlash
-    const langInfo = detectLanguage(storyText);
+    // Tilni aniqlash va sozlash (backend -> fallback)
+    const langInfo =
+      detectedLanguageRef.current ||
+      (await fetchSpeechLanguageFromBackend(storyText)) ||
+      detectLanguage(storyText);
     if (!langInfo) {
       window.appAlert("Qo'llab-quvvatlanmaydigan til. Faqat o'zbek, rus va ingliz tillari qo'llab-quvvatlanadi.");
       setLanguageError("Qo'llab-quvvatlanmaydigan til. Faqat o'zbek, rus va ingliz tillari qo'llab-quvvatlanadi.");
@@ -533,6 +765,7 @@ export default function StoryReader({ storyText, age = 7 }) {
     }
     
     setIsReading(true);
+    setPaused(false);
     setIsMainTextFinished(false);
     mainTextFlagRef.current = false;
     setReadingFinished(false);
@@ -553,7 +786,7 @@ export default function StoryReader({ storyText, age = 7 }) {
         return;
     }
     
-    // Tilni tekshirish
+    // Tilni tekshirish (initSpeechConfig allaqachon detectedLanguageRef'ni backend orqali sozlagan bo'lishi kerak)
     if (!detectedLanguageRef.current) {
       const langInfo = detectLanguage(storyText);
       if (!langInfo) {
@@ -907,10 +1140,45 @@ export default function StoryReader({ storyText, age = 7 }) {
 
   // ⏸️ Pauzani boshlash
   const pauseReading = () => {
+    console.log("⏸️ Pauzada...");
+    setPaused(true);
+
+    // Speaker audio'ni ham pauza qilamiz
+    try {
+      speakerDestinationRef.current?.pause();
+    } catch (_) {}
+
     if (synthesizerRef.current) {
-      console.log("⏸️ Pauzada...");
-      synthesizerRef.current.close();
-      synthesizerRef.current = null;
+      // close() ko'pincha karnaydagi audio'ni darhol to'xtatmaydi;
+      // stopSpeakingAsync esa ongoing synthesis/playback'ni to'xtatadi.
+      try {
+        if (typeof synthesizerRef.current.stopSpeakingAsync === "function") {
+          synthesizerRef.current.stopSpeakingAsync(
+            () => {
+              try {
+                synthesizerRef.current?.close();
+              } catch (_) {}
+              synthesizerRef.current = null;
+            },
+            (e) => {
+              console.warn("⚠️ stopSpeakingAsync xatosi:", e);
+              try {
+                synthesizerRef.current?.close();
+              } catch (_) {}
+              synthesizerRef.current = null;
+            }
+          );
+        } else {
+          synthesizerRef.current.close();
+          synthesizerRef.current = null;
+        }
+      } catch (e) {
+        console.warn("⚠️ Pauza paytida to'xtatib bo'lmadi:", e);
+        try {
+          synthesizerRef.current.close();
+        } catch (_) {}
+        synthesizerRef.current = null;
+      }
     }
     // Taymerni to'xtatish (muhim: aks holda keyingi matnga o'tib ketadi)
     if (timerRef.current) {
@@ -926,18 +1194,22 @@ export default function StoryReader({ storyText, age = 7 }) {
   const resumeReading = () => {
     if (audioQueue.length > 0) {
       console.log("▶️ Davom ettirilmoqda...");
+      setPaused(false);
+
+      try {
+        speakerDestinationRef.current?.resume();
+      } catch (_) {}
+
       isSpeakingRef.current = false;
       setIsSpeaking(false);
-      // Bu yerda speakText ni chaqirish shart emas, chunki useEffect
-      // (!isSpeakingRef.current && audioQueue.length > 0) ni ko'rib o'zi chaqiradi
-      // Yoki majburan chaqiramiz:
-      speakText(audioQueue[0]);
+      // speakText'ni bu yerda chaqirmaymiz: useEffect isPaused'ni kuzatib davom ettiradi
     }
   };
 
   // 🔄 Qayta o'qishni boshlash
   const restartReading = () => {
     console.log("🔄 Qayta o'qishni boshlash...");
+    setPaused(false);
     if (synthesizerRef.current) {
       synthesizerRef.current.close();
       synthesizerRef.current = null;
@@ -951,15 +1223,121 @@ export default function StoryReader({ storyText, age = 7 }) {
 
   // Audio'ni to'xtatish funksiyasi
   const stopAudio = () => {
+    setPaused(false);
     if (timerRef.current) clearTimeout(timerRef.current);
+
+    // Speaker audio'ni darhol o'chiramiz
+    try {
+      speakerDestinationRef.current?.pause();
+      speakerDestinationRef.current?.close();
+    } catch (_) {}
+    speakerDestinationRef.current = null;
+
     if (synthesizerRef.current) {
-      synthesizerRef.current.close();
-      synthesizerRef.current = null;
+      const currentSynth = synthesizerRef.current;
+      try {
+        if (typeof currentSynth.stopSpeakingAsync === "function") {
+          currentSynth.stopSpeakingAsync(
+            () => {
+              try {
+                currentSynth.close();
+              } catch (_) {}
+              if (synthesizerRef.current === currentSynth) {
+                synthesizerRef.current = null;
+              }
+            },
+            (e) => {
+              console.warn("⚠️ stopSpeakingAsync (stop) xatosi:", e);
+              try {
+                currentSynth.close();
+              } catch (_) {}
+              if (synthesizerRef.current === currentSynth) {
+                synthesizerRef.current = null;
+              }
+            }
+          );
+        } else {
+          currentSynth.close();
+          synthesizerRef.current = null;
+        }
+      } catch (e) {
+        console.warn("⚠️ Stop paytida to'xtatib bo'lmadi:", e);
+        try {
+          currentSynth.close();
+        } catch (_) {}
+        if (synthesizerRef.current === currentSynth) {
+          synthesizerRef.current = null;
+        }
+      }
     }
+
     isSpeakingRef.current = false;
     setIsSpeaking(false);
     setAudioQueue([]); // Navbatni tozalash
   };
+
+  // 🛑 O'qishni to'xtatish va bosh menyuga qaytish ("O'zim o'qiyman" qaytib chiqadi)
+  const stopReadingAndReset = useCallback(() => {
+    console.log("🛑 O'qish to'xtatildi");
+    // UI reset uchun bu yerda setState ishlatamiz (faqat mounted bo'lsa)
+    hardStopTts();
+
+    if (!isMountedRef.current) return;
+
+    setPaused(false);
+    setAudioQueue([]);
+    setIsSpeaking(false);
+    setIsReading(false);
+    setReadingFinished(false);
+    setIsMainTextFinished(false);
+    mainTextFlagRef.current = false;
+    setPendingQuestion("");
+    setCurrentQuestion("");
+  }, [hardStopTts]);
+
+  // Unmount bo'lsa (boshqa sahifaga chiqsa) - TTS darhol to'xtasin
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      hardStopTts();
+    };
+  }, [hardStopTts]);
+
+  // Route o'zgarsa ham (telefon/back/forward) - TTS darhol to'xtasin
+  useEffect(() => {
+    const currentRoute = `${location.pathname}${location.search}${location.hash}`;
+    if (lastRouteRef.current !== currentRoute) {
+      hardStopTts();
+      lastRouteRef.current = currentRoute;
+    }
+  }, [location.pathname, location.search, location.hash, hardStopTts]);
+
+  // Browser hodisalari: tab yashirilsa/yopilsa/back bosilsa
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab/background: user qaytsa ham o'qish davom etmasin
+        stopReadingAndReset();
+      }
+    };
+
+    const onPageHide = () => hardStopTts();
+    const onBeforeUnload = () => hardStopTts();
+    const onPopState = () => hardStopTts();
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    window.addEventListener("popstate", onPopState);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, [hardStopTts, stopReadingAndReset]);
 
   return (
     <div style={{ lineHeight: "2em", fontFamily: "sans-serif", paddingBottom: "70px" }}>
@@ -977,74 +1355,68 @@ export default function StoryReader({ storyText, age = 7 }) {
         </div>
       )}
       
-      {/* Aniqlangan til ma'lumoti */}
-      {detectedLanguageRef.current && !languageError && (
-        <div style={{
-          marginBottom: 10,
-          padding: "10px 15px",
-          backgroundColor: "#e3f2fd",
-          borderRadius: "5px",
-          border: "1px solid #2196F3",
-          color: "#1976d2",
-          fontSize: "14px"
-        }}>
-          🌐 Aniqlangan til: <strong>{detectedLanguageRef.current.name}</strong>
-        </div>
-      )}
+     
       
       {!readingFinished && (
-        <div style={{ marginBottom: 20, display: "flex", gap: "10px", flexWrap: "wrap" }}>
+        <div style={{ marginBottom: 20, display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
           <button 
             onClick={() => {
               if (!isReading && audioQueue.length === 0) {
                 startReading();
-              } else if (isSpeaking) {
-                pauseReading();
               } else {
-                resumeReading();
+                stopReadingAndReset();
               }
             }} 
+            aria-label={(!isReading && audioQueue.length === 0) ? "O'qishni boshla" : "To'xtatish"}
+            title={(!isReading && audioQueue.length === 0) ? "O'qishni boshla" : "To'xtatish"}
             style={{ 
-              padding: "10px 20px",
-              fontSize: "16px",
-              backgroundColor: (!isReading && audioQueue.length === 0) ? "#4CAF50" : (isSpeaking ? "#ff9800" : "#2196F3"),
+              width: "64px",
+              height: "64px",
+              padding: 0,
+              backgroundColor: (!isReading && audioQueue.length === 0) ? "#4CAF50" : "#f44336",
               color: "white",
               border: "none",
-              borderRadius: "5px",
+              borderRadius: "8px",
               cursor: "pointer",
-              minWidth: "160px",
               fontWeight: "bold",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "8px"
+              gap: 0
             }}
           >
-            {(!isReading && audioQueue.length === 0) ? "🔊 O'qishni boshla" : (isSpeaking ? "⏸️ Pauza" : "▶️ Davom ettirish")}
+            <span style={{ display: "flex", alignItems: "center" }}>
+              {(!isReading && audioQueue.length === 0) ? (
+                <PlayCircleIcon size={40} />
+              ) : (
+                <StopCircleIcon size={40} />
+              )}
+            </span>
           </button>
 
           {(!isReading && audioQueue.length === 0) && (
             <>
               <button 
                   onClick={startSelfReadingMode}
+                  aria-label="O'zim o'qiyman"
+                  title="O'zim o'qiyman"
                   style={{
-                      padding: "10px 20px",
-                      fontSize: "16px",
-                      backgroundColor: "#FF5722",
+                    width: "64px",
+                    height: "64px",
+                    padding: 0,
+                      backgroundColor: "#004C89",
                       color: "white",
                       border: "none",
-                      borderRadius: "5px",
+                    borderRadius: "8px",
                       cursor: "pointer",
-                      minWidth: "160px",
                       fontWeight: "bold",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: "8px"
+                    gap: 0
                   }}
               >
-                  <BookOpen size={20} />
-                  O'zim o'qiyman
+                  <ReaderIcon size={40} />
               </button>
 
              
@@ -1055,19 +1427,7 @@ export default function StoryReader({ storyText, age = 7 }) {
         </div>
       )}
 
-      {isSpeaking && audioQueue.length > 0 && (
-        <div style={{ 
-          marginBottom: 10, 
-          padding: "10px", 
-          backgroundColor: "#e3f2fd", 
-          borderRadius: "5px",
-          border: "1px solid #2196F3"
-        }}>
-          <p style={{ margin: 0, color: "#1976d2" }}>
-            🗣️ Gapirilmoqda... ({audioQueue.length} qoldi)
-          </p>
-        </div>
-      )}
+  
 
       <div style={{ 
         fontSize: "1.2em", 
@@ -1468,12 +1828,12 @@ export default function StoryReader({ storyText, age = 7 }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px'
+        padding: '3px'
     }}>
         <div style={{
             backgroundColor: 'white',
             borderRadius: '20px',
-            padding: '30px',
+            padding: '3px',
             maxWidth: '800px',
             width: '100%',
             maxHeight: '90vh',
@@ -1494,10 +1854,10 @@ export default function StoryReader({ storyText, age = 7 }) {
                             setShowSelfReadModal(false);
                             setIsSelfReading(false);
                             setIsListening(false);
-                            if (speechRecognizerRef.current) {
-                                speechRecognizerRef.current.stopContinuousRecognitionAsync(() => {
-                                    speechRecognizerRef.current.close();
-                                    speechRecognizerRef.current = null;
+                            if (recognizerRef.current) {
+                                recognizerRef.current.stopContinuousRecognitionAsync(() => {
+                                    recognizerRef.current.close();
+                                    recognizerRef.current = null;
                                 });
                             }
                         }}
@@ -1507,7 +1867,7 @@ export default function StoryReader({ storyText, age = 7 }) {
                             fontSize: '24px',
                             cursor: 'pointer',
                             color: '#666',
-                            padding: '5px'
+                            padding: '1px'
                         }}
                     >
                         ❌

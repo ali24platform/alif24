@@ -51,7 +51,7 @@ const items = [
      exampleImages: ["🧸", "🍊"] },
   { label: "Н н", image: "🦏", 
     examples: ["Носорог", "Носки"],
-     exampleImages: ["🦏", "🎵🧦"] },
+     exampleImages: ["🦏", "🧦"] },
   { label: "О о", image: "🫏", 
     examples: ["Осёл", "Очки"], 
     exampleImages: ["🫏", "🕶"] },

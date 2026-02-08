@@ -53,12 +53,6 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
       label: "Ta'lim tashkiloti",
       icon: <Building className="w-5 h-5" />,
       description: "Maktab yoki o'quv markazi uchun"
-    },
-    {
-      value: 'admin',
-      label: t('auth_role_admin'),
-      icon: <Shield className="w-5 h-5" />,
-      description: t('auth_role_admin_desc')
     }
   ];
 

@@ -25,11 +25,13 @@ export default function MathSolver() {
   const textareaRef = useRef(null);
 const API_BASE_URL = import.meta.env.VITE_MATH_API_URL 
   ? import.meta.env.VITE_MATH_API_URL
-  : "https://alif-24.vercel.app/api/v1/mathkids";
+  : (import.meta.env.VITE_API_URL 
+    ? `${import.meta.env.VITE_API_URL}/mathkids`
+    : "/api/v1/mathkids");
 
 const SPEECH_TOKEN_URL = import.meta.env.VITE_API_URL 
-  ? import.meta.env.VITE_API_URL.replace('/v1', '/smartkids/speech-token') 
-  : "https://alif-24.vercel.app/api/v1/smartkids/speech-token";
+  ? `${import.meta.env.VITE_API_URL}/smartkids/speech-token` 
+  : "/api/v1/smartkids/speech-token";
 
   
 
@@ -370,7 +372,7 @@ const SPEECH_TOKEN_URL = import.meta.env.VITE_API_URL
         {ProblemList()}
         <main className="math-main">
           
-            <h2 className="text-4xl font-bold text-center mb-8 text-blue-600">🧮 AI bilan masala yechish</h2>
+            <h2 className="text-2xl sm:text-4xl font-bold text-center mb-8 text-blue-600 leading-tight">🧮 AI bilan masala yechish</h2>
 
             {showUploader ? (
               <ImageCropper onTextExtracted={handleTextExtracted} />

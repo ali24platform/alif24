@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Gamepad2, ChevronRight, Menu, X } from 'lucide-react';
+import { Home, BookOpen, Gamepad2, ChevronRight, Menu, X, Calculator, Languages, Book, Car, Laptop, TreePine, Gem, Crosshair, Plane, LayoutGrid, Flame, Trophy, FileStack, Bot, ClipboardList } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import { useUsageTracking, USAGE_ACTIONS } from '../hooks/useUsageTracking';
@@ -46,27 +46,27 @@ const HomePage = () => {
     { id: 6, title: t.game_calc, rating: 78, image: '/matem.jpg', category: 'math', type: 'games' },
     { id: 7, title: 'AI Oʻqituvchi', rating: 87, image: '/texno.jpg', category: 'sonlar', type: 'lessons', premium: true },
     { id: 8, title: 'Farm Building', rating: 83, image: '/uqish.jpg', category: 'tabiat', type: 'lessons', premium: true },
-    { id: 9, title: 'Desert Shooter', rating: 68, image: '🔫', category: 'harflar', type: 'games' },
-    { id: 10, title: 'War Plane', rating: 71, image: '✈️', category: 'tabiat', type: 'games', premium: true },
-    { id: 11, title: 'Tetris', rating: 82, image: '🟦', category: 'sonlar', type: 'games' },
-    { id: 12, title: 'Fireboy & Watergirl', rating: 74, image: '🔥', category: 'robot', type: 'lessons' },
-    { id: 13, title: 'FIFA World Cup', rating: 65, image: '⚽', category: 'informatika', type: 'games' },
-    { id: 14, title: 'Card Games', rating: 90, image: '🃏', category: 'math', type: 'lessons' },
-    { id: 15, title: '2048', rating: 88, image: '🔢', category: 'math', type: 'games' },
-    { id: 16, title: '2+3', rating: 55, image: '🔢', category: 'math', type: 'lessons' },
-    { id: 17, title: 'Alifbe Darsi', rating: 91, image: '📖', category: 'alifbe', type: 'lessons' },
-    { id: 18, title: 'Robot Yasash', rating: 85, image: '🤖', category: 'robot', type: 'lessons', premium: true },
+    { id: 9, title: 'Desert Shooter', rating: 68, icon: <Crosshair size={48} className="text-red-400" />, category: 'harflar', type: 'games' },
+    { id: 10, title: 'War Plane', rating: 71, icon: <Plane size={48} className="text-blue-400" />, category: 'tabiat', type: 'games', premium: true },
+    { id: 11, title: 'Tetris', rating: 82, icon: <LayoutGrid size={48} className="text-yellow-400" />, category: 'sonlar', type: 'games' },
+    { id: 12, title: 'Fireboy & Watergirl', rating: 74, icon: <Flame size={48} className="text-orange-500" />, category: 'robot', type: 'lessons' },
+    { id: 13, title: 'FIFA World Cup', rating: 65, icon: <Trophy size={48} className="text-yellow-500" />, category: 'informatika', type: 'games' },
+    { id: 14, title: 'Card Games', rating: 90, icon: <FileStack size={48} className="text-green-400" />, category: 'math', type: 'lessons' },
+    { id: 15, title: '2048', rating: 88, icon: <Calculator size={48} className="text-purple-400" />, category: 'math', type: 'games' },
+    { id: 16, title: '2+3', rating: 55, icon: <Calculator size={48} className="text-blue-400" />, category: 'math', type: 'lessons' },
+    { id: 17, title: 'Alifbe Darsi', rating: 91, icon: <BookOpen size={48} className="text-indigo-400" />, category: 'alifbe', type: 'lessons' },
+    { id: 18, title: 'Robot Yasash', rating: 85, icon: <Bot size={48} className="text-gray-300" />, category: 'robot', type: 'lessons', premium: true },
   ];
 
   // Sidebar kategoriyalari
   const categories = [
-    { id: 'harflar', nameKey: 'letters', icon: '🔤' },
-    { id: 'alifbe', nameKey: 'alphabet', icon: '📚' },
-    { id: 'math', nameKey: 'math', icon: '➕' },
-    { id: 'texnika', nameKey: 'technique', icon: '🚗' },
-    { id: 'informatika', nameKey: 'informatics', icon: '💻' },
-    { id: 'tabiat', nameKey: 'nature', icon: '🌳' },
-    { id: 'boshqalar', nameKey: 'others', icon: '💎' },
+    { id: 'harflar', nameKey: 'letters', icon: <Languages size={24} /> },
+    { id: 'alifbe', nameKey: 'alphabet', icon: <Book size={24} /> },
+    { id: 'math', nameKey: 'math', icon: <Calculator size={24} /> },
+    { id: 'texnika', nameKey: 'technique', icon: <Car size={24} /> },
+    { id: 'informatika', nameKey: 'informatics', icon: <Laptop size={24} /> },
+    { id: 'tabiat', nameKey: 'nature', icon: <TreePine size={24} /> },
+    { id: 'boshqalar', nameKey: 'others', icon: <Gem size={24} /> },
   ];
 
   // Filtrlangan elementlar
@@ -193,68 +193,62 @@ const HomePage = () => {
               {sidebarOpen ? <X size={24} /> : <Menu size={20} />}
             </button>
 
-            {/* All Category Button */}
-            <button
-              className={`w-full flex items-center gap-3 mb-3 border-none rounded-xl cursor-pointer transition-all duration-300 text-white text-base font-bold transform hover:scale-110 shadow-lg ${sidebarOpen ? 'p-3 justify-start' : 'p-2.5 justify-center'
-                } ${categoryFilter === 'all'
-                  ? 'bg-gradient-to-r from-[#ff6b6b] to-[#ff8e53] shadow-[0_4px_20px_rgba(255,107,107,0.6)]'
-                  : 'bg-gradient-to-r from-[#4ecdc4] to-[#44a08d] shadow-[0_4px_15px_rgba(78,205,196,0.5)]'
-                }`}
-              onClick={() => handleCategoryClick('all')}
-            >
-              <span className="text-2xl">📋</span>
-              {sidebarOpen && (
-                <>
+            {sidebarOpen && (
+              <>
+                {/* All Category Button */}
+                <button
+                  className={`w-full flex items-center gap-3 mb-3 border-none rounded-xl cursor-pointer transition-all duration-300 text-white text-base font-bold transform hover:scale-110 shadow-lg p-3 justify-start ${categoryFilter === 'all'
+                    ? 'bg-gradient-to-r from-[#ff6b6b] to-[#ff8e53] shadow-[0_4px_20px_rgba(255,107,107,0.6)]'
+                    : 'bg-gradient-to-r from-[#4ecdc4] to-[#44a08d] shadow-[0_4px_15px_rgba(78,205,196,0.5)]'
+                    }`}
+                  onClick={() => handleCategoryClick('all')}
+                >
+                  <span className="text-2xl"><ClipboardList size={24} /></span>
                   <span className="flex-1 text-left">
                     {t.all}
                   </span>
                   <ChevronRight size={16} className="opacity-80" />
-                </>
-              )}
-            </button>
+                </button>
 
-            {/* Category Buttons */}
-            {categories.map((cat, index) => {
-              const colors = [
-                { from: '#ff6b9d', to: '#c44569', shadow: 'rgba(255,107,157,0.6)' },
-                { from: '#feca57', to: '#ff9ff3', shadow: 'rgba(254,202,87,0.6)' },
-                { from: '#48dbfb', to: '#0abde3', shadow: 'rgba(72,219,251,0.6)' },
-                { from: '#1dd1a1', to: '#10ac84', shadow: 'rgba(29,209,161,0.6)' },
-                { from: '#ff9ff3', to: '#ee5a6f', shadow: 'rgba(255,159,243,0.6)' },
-                { from: '#54a0ff', to: '#2e86de', shadow: 'rgba(84,160,255,0.6)' },
-                { from: '#5f27cd', to: '#341f97', shadow: 'rgba(95,39,205,0.6)' },
-                { from: '#00d2d3', to: '#01a3a4', shadow: 'rgba(0,210,211,0.6)' },
-                { from: '#ff6348', to: '#ff4757', shadow: 'rgba(255,99,72,0.6)' },
-              ];
-              const color = colors[index % colors.length];
+                {/* Category Buttons */}
+                {categories.map((cat, index) => {
+                  const colors = [
+                    { from: '#ff6b9d', to: '#c44569', shadow: 'rgba(255,107,157,0.6)' },
+                    { from: '#feca57', to: '#ff9ff3', shadow: 'rgba(254,202,87,0.6)' },
+                    { from: '#48dbfb', to: '#0abde3', shadow: 'rgba(72,219,251,0.6)' },
+                    { from: '#1dd1a1', to: '#10ac84', shadow: 'rgba(29,209,161,0.6)' },
+                    { from: '#ff9ff3', to: '#ee5a6f', shadow: 'rgba(255,159,243,0.6)' },
+                    { from: '#54a0ff', to: '#2e86de', shadow: 'rgba(84,160,255,0.6)' },
+                    { from: '#5f27cd', to: '#341f97', shadow: 'rgba(95,39,205,0.6)' },
+                    { from: '#00d2d3', to: '#01a3a4', shadow: 'rgba(0,210,211,0.6)' },
+                    { from: '#ff6348', to: '#ff4757', shadow: 'rgba(255,99,72,0.6)' },
+                  ];
+                  const color = colors[index % colors.length];
 
-              return (
-                <button
-                  key={cat.id}
-                  className={`w-full flex items-center gap-3 mb-3 border-none rounded-xl cursor-pointer transition-all duration-300 text-white text-base font-bold transform hover:scale-110 shadow-lg ${sidebarOpen ? 'p-3 justify-start' : 'p-2.5 justify-center'
-                    } ${categoryFilter === cat.id
-                      ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1a1a2e]'
-                      : ''
-                    }`}
-                  onClick={() => handleCategoryClick(cat.id)}
-                  style={{
-                    background: `linear-gradient(135deg, ${color.from} 0%, ${color.to} 100%)`,
-                    boxShadow: `0 4px 15px ${color.shadow}`,
-                    animation: `slideInLeft 0.3s ease-out ${index * 0.05}s both`
-                  }}
-                >
-                  <span className="text-2xl">{cat.icon}</span>
-                  {sidebarOpen && (
-                    <>
+                  return (
+                    <button
+                      key={cat.id}
+                      className={`w-full flex items-center gap-3 mb-3 border-none rounded-xl cursor-pointer transition-all duration-300 text-white text-base font-bold transform hover:scale-110 shadow-lg p-3 justify-start ${categoryFilter === cat.id
+                        ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1a1a2e]'
+                        : ''
+                        }`}
+                      onClick={() => handleCategoryClick(cat.id)}
+                      style={{
+                        background: `linear-gradient(135deg, ${color.from} 0%, ${color.to} 100%)`,
+                        boxShadow: `0 4px 15px ${color.shadow}`,
+                        animation: `slideInLeft 0.3s ease-out ${index * 0.05}s both`
+                      }}
+                    >
+                      <span className="text-2xl">{cat.icon}</span>
                       <span className="flex-1 text-left">
                         {t[cat.nameKey]}
                       </span>
                       <ChevronRight size={16} className="opacity-80" />
-                    </>
-                  )}
-                </button>
-              );
-            })}
+                    </button>
+                  );
+                })}
+              </>
+            )}
           </div>
         </aside>
 
@@ -268,8 +262,8 @@ const HomePage = () => {
             <div className="flex items-center gap-4 mb-7 flex-wrap">
               <button
                 className={`px-6 py-3 border-none rounded-xl font-semibold text-base cursor-pointer flex items-center gap-2 transition-all duration-300 ${mainFilter === 'all'
-                    ? 'bg-gradient-to-br from-[#4b30fb] to-[#764ba2] text-white shadow-[0_4px_15px_rgba(75,48,251,0.4)]'
-                    : 'bg-white/30 text-white hover:bg-white/20 hover:-translate-y-0.5'
+                  ? 'bg-gradient-to-br from-[#4b30fb] to-[#764ba2] text-white shadow-[0_4px_15px_rgba(75,48,251,0.4)]'
+                  : 'bg-white/30 text-white hover:bg-white/20 hover:-translate-y-0.5'
                   }`}
                 onClick={() => handleMainFilterClick('all')}
               >
@@ -279,8 +273,8 @@ const HomePage = () => {
 
               <button
                 className={`px-6 py-3 border-none rounded-xl font-semibold text-base cursor-pointer flex items-center gap-2 transition-all duration-300 ${mainFilter === 'lessons'
-                    ? 'bg-gradient-to-br from-[#4b30fb] to-[#764ba2] text-white shadow-[0_4px_15px_rgba(75,48,251,0.4)]'
-                    : 'bg-white/30 text-white hover:bg-white/20 hover:-translate-y-0.5'
+                  ? 'bg-gradient-to-br from-[#4b30fb] to-[#764ba2] text-white shadow-[0_4px_15px_rgba(75,48,251,0.4)]'
+                  : 'bg-white/30 text-white hover:bg-white/20 hover:-translate-y-0.5'
                   }`}
                 onClick={() => handleMainFilterClick('lessons')}
               >
@@ -290,8 +284,8 @@ const HomePage = () => {
 
               <button
                 className={`px-6 py-3 border-none rounded-xl font-semibold text-base cursor-pointer flex items-center gap-2 transition-all duration-300 ${mainFilter === 'games'
-                    ? 'bg-gradient-to-br from-[#4b30fb] to-[#764ba2] text-white shadow-[0_4px_15px_rgba(75,48,251,0.4)]'
-                    : 'bg-white/30 text-white hover:bg-white/20 hover:-translate-y-0.5'
+                  ? 'bg-gradient-to-br from-[#4b30fb] to-[#764ba2] text-white shadow-[0_4px_15px_rgba(75,48,251,0.4)]'
+                  : 'bg-white/30 text-white hover:bg-white/20 hover:-translate-y-0.5'
                   }`}
                 onClick={() => handleMainFilterClick('games')}
               >
@@ -328,7 +322,9 @@ const HomePage = () => {
                         {typeof game.image === 'string' && game.image.startsWith('/') ? (
                           <img src={game.image} alt={game.title} className="w-full h-full object-cover" />
                         ) : (
-                          <span className="text-6xl lg:text-7xl transition-transform duration-300 group-hover:scale-110">{game.image}</span>
+                          <span className="flex items-center justify-center w-full h-full transition-transform duration-300 group-hover:scale-110">
+                            {game.icon}
+                          </span>
                         )}
                       </div>
                     </div>

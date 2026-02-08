@@ -4,7 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Common/Navbar';
 
-import { Camera, Bell, Settings, BookOpen, Users, BarChart3, MessageSquare, Calendar, FileText, Award, HelpCircle, ChevronDown, Plus, Search, Filter, Download, Edit, Trash2, Eye, Send, Clock, TrendingUp, AlertCircle, CheckCircle, Star, Video, Upload, Menu, X, UserPlus } from 'lucide-react';
+import { Camera, Bell, Settings, BookOpen, Users, BarChart3, MessageSquare, Calendar, FileText, Award, HelpCircle, ChevronDown, Plus, Search, Filter, Download, Edit, Trash2, Eye, Send, Clock, TrendingUp, AlertCircle, CheckCircle, Star, Video, Upload, Menu, X, UserPlus, GraduationCap } from 'lucide-react';
 import TestAIPage from '../modules/testai/pages/TestAIPage';
 import { teacherService } from '../services/teacherService';
 
@@ -150,7 +150,7 @@ const TeacherDashboard = () => {
     <div className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
       <div className="sidebar-header">
         <div className="logo-section">
-          <div className="logo-icon">🎓</div>
+          <div className="logo-icon"><GraduationCap size={32} className="text-purple-600" /></div>
           <h2 className="logo-text">EduPlatform</h2>
         </div>
         <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>

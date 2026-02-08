@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Common/Navbar';
-import { 
-    BookOpen, Trophy, Clock, Star, Play, CheckCircle, Search, Filter, 
+import {
+    BookOpen, Trophy, Clock, Star, Play, CheckCircle, Search, Filter,
     TrendingUp, Award, Target, Calendar, MessageSquare, Users, Bell,
     Settings, Camera, Edit, Upload, Download, Send, Heart, Share2,
     Video, Phone, Mail, MapPin, GraduationCap, FileText, BarChart3,
     ChevronRight, Plus, X, Eye, Lock, Globe, Palette, Moon, Sun,
     Image, Flag, Gift, Zap, Shield, HelpCircle, MessageCircle,
-    Home, Book, ClipboardList, Medal, School, Activity, TrendingDown
+    Home, Book, ClipboardList, Medal, School, Activity, TrendingDown, Bot, Coins, Flame, Languages, Laptop
 } from 'lucide-react';
 
 const STORY_API_BASE = import.meta.env.VITE_API_URL
@@ -109,7 +109,7 @@ const StudentDashboard = () => {
     const user = {
         name: authUser?.first_name || 'Ali',
         lastName: authUser?.last_name || 'Valiyev',
-        monster: '👾',
+        monster: <Bot size={80} className="text-white" />,
         points: studentProfile?.student_profile?.total_points || 0,
         streak: studentProfile?.student_profile?.current_streak || 0,
         level: studentProfile?.student_profile?.level || 1,
@@ -131,9 +131,9 @@ const StudentDashboard = () => {
     ];
 
     const books = [
-        { id: 1, title: 'Matematika 7-sinf', category: 'science', cover: '📐' },
-        { id: 2, title: 'English Grammar', category: 'lang', cover: '🇬🇧' },
-        { id: 3, title: 'Python for Kids', category: 'it', cover: '🐍' }
+        { id: 1, title: 'Matematika 7-sinf', category: 'science', cover: <BookOpen size={48} className="text-blue-500" /> },
+        { id: 2, title: 'English Grammar', category: 'lang', cover: <Languages size={48} className="text-pink-500" /> },
+        { id: 3, title: 'Python for Kids', category: 'it', cover: <Laptop size={48} className="text-purple-500" /> }
     ];
 
     useEffect(() => {
@@ -180,26 +180,26 @@ const StudentDashboard = () => {
                             <h2 className="text-3xl font-bold">{t.welcome}, {user.name}!</h2>
                             <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">Lvl {user.level}</span>
                         </div>
-                        <p className="opacity-90 mb-6">
-                            {user.parent ? "Ota-onangiz sizni kuzatib bormoqda 🛡️" : "Bugungi rejangizda 2 ta yangi vazifa bor."}
+                        <p className="opacity-90 mb-6 flex items-center gap-2">
+                            {user.parent ? <>Ota-onangiz sizni kuzatib bormoqda <Shield size={16} /></> : "Bugungi rejangizda 2 ta yangi vazifa bor."}
                         </p>
                         <button onClick={() => setActiveTab('tasks')} className="bg-white text-indigo-600 px-6 py-2 rounded-full font-bold shadow-lg hover:scale-105 transition-transform">
                             Boshlash
                         </button>
                     </div>
-                    <div className="text-[80px] relative z-10 animate-bounce">{user.monster}</div>
+                    <div className="relative z-10 animate-bounce">{user.monster}</div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center text-2xl">🪙</div>
+                        <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center text-2xl"><Coins size={24} className="text-yellow-600" /></div>
                         <div>
                             <p className="text-gray-500 text-sm">{t.stats.points}</p>
                             <h3 className="text-2xl font-bold text-gray-800">{user.points}</h3>
                         </div>
                     </div>
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-2xl">🔥</div>
+                        <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-2xl"><Flame size={24} className="text-orange-600" /></div>
                         <div>
                             <p className="text-gray-500 text-sm">{t.stats.streak}</p>
                             <h3 className="text-2xl font-bold text-gray-800">{user.streak} kun</h3>
@@ -341,8 +341,8 @@ const StudentDashboard = () => {
                     {activeTab === 'achievements' && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="bg-white p-6 rounded-2xl text-center shadow-sm">
-                                    <div className="text-4xl mb-3">🏆</div>
+                                <div key={i} className="bg-white p-6 rounded-2xl text-center shadow-sm flex flex-col items-center">
+                                    <div className="mb-3"><Trophy size={48} className="text-yellow-500" /></div>
                                     <h3 className="font-bold text-gray-800">Yutuq {i}</h3>
                                 </div>
                             ))}

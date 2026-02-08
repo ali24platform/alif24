@@ -3,7 +3,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import parentService from '../services/parentService';
 import Navbar from '../components/Common/Navbar';
-import { Users, CreditCard, Bell, Settings, PieChart, Calendar, TrendingUp, Plus, X, Eye, EyeOff, Key, UserCheck } from 'lucide-react';
+import { Users, CreditCard, Bell, Settings, PieChart, Calendar, TrendingUp, Plus, X, Eye, EyeOff, Key, UserCheck, ArrowDown, ArrowUp } from 'lucide-react';
 
 const ParentDashboard = () => {
     const { language } = useLanguage();
@@ -190,7 +190,7 @@ const ParentDashboard = () => {
                     <div key={tx.id} className="p-4 border-b border-gray-100 last:border-0 flex justify-between items-center hover:bg-gray-50 cursor-default">
                         <div className="flex items-center gap-4">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.amount.startsWith('+') ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                                {tx.amount.startsWith('+') ? '↓' : '↑'}
+                                {tx.amount.startsWith('+') ? <ArrowDown size={20} /> : <ArrowUp size={20} />}
                             </div>
                             <div>
                                 <h4 className="font-bold text-gray-800">{tx.desc}</h4>

@@ -1,6 +1,7 @@
 import { useLanguage } from '../context/LanguageContext';
 import Navbar from '../components/Common/Navbar';
 import './ProfilePageTeacher.css';
+import { User, GraduationCap, BookOpen, TrendingUp, Clock, Users, BarChart3, Settings, Bell, Lock, HelpCircle, ChevronRight } from 'lucide-react';
 
 /**
  * Profile Page for Teachers and Parents
@@ -114,113 +115,113 @@ const ProfilePageTeacher = () => {
   const user = {
     name: 'Jasur Karimov',
     role: 'teacher',
-    avatar: '👤'
+    avatar: <User size={48} className="text-gray-600" />
   };
 
   const stats = [
-    { icon: '👨‍🎓', label: t.stats.students, value: '25' },
-    { icon: '📚', label: t.stats.lessons, value: '24' },
-    { icon: '📈', label: t.stats.progress, value: '78%' },
-    { icon: '⏱️', label: t.stats.time, value: '12h' }
+    { icon: <GraduationCap size={24} className="text-blue-500" />, label: t.stats.students, value: '25' },
+    { icon: <BookOpen size={24} className="text-green-500" />, label: t.stats.lessons, value: '24' },
+    { icon: <TrendingUp size={24} className="text-purple-500" />, label: t.stats.progress, value: '78%' },
+    { icon: <Clock size={24} className="text-orange-500" />, label: t.stats.time, value: '12h' }
   ];
 
   return (
     <>
       <Navbar />
       <div className="profile-teacher-page">
-      {/* Header */}
-      <section className="profile-header">
-        <div className="container">
-          <div className="profile-welcome">
-            <div className="user-avatar">{user.avatar}</div>
-            <div className="user-info">
-              <h1 className="user-name">{t.welcome}, {user.name}!</h1>
-              <p className="user-role">O'qituvchi</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Statistics */}
-      <section className="profile-stats-section">
-        <div className="container">
-          <h2 className="section-title">{t.stats.title}</h2>
-          <div className="stats-grid">
-            {stats.map((stat, index) => (
-              <div key={index} className="stat-card">
-                <div className="stat-icon">{stat.icon}</div>
-                <div className="stat-info">
-                  <div className="stat-value">{stat.value}</div>
-                  <div className="stat-label">{stat.label}</div>
-                </div>
+        {/* Header */}
+        <section className="profile-header">
+          <div className="container">
+            <div className="profile-welcome">
+              <div className="user-avatar">{user.avatar}</div>
+              <div className="user-info">
+                <h1 className="user-name">{t.welcome}, {user.name}!</h1>
+                <p className="user-role">O'qituvchi</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Children/Students Section */}
-      <section className="profile-children-section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">
-              {t.teacher.title}
-            </h2>
-            <button className="btn-add">
-              {t.teacher.addClass}
-            </button>
-          </div>
-          <div className="children-grid">
-            <div className="empty-state">
-              <div className="empty-icon">👥</div>
-              <p>{t.teacher.empty}</p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Recent Activity */}
-      <section className="profile-activity-section">
-        <div className="container">
-          <h2 className="section-title">{t.recentActivity.title}</h2>
-          <div className="activity-list">
-            <div className="empty-state">
-              <div className="empty-icon">📊</div>
-              <p>{t.recentActivity.empty}</p>
+        {/* Statistics */}
+        <section className="profile-stats-section">
+          <div className="container">
+            <h2 className="section-title">{t.stats.title}</h2>
+            <div className="stats-grid">
+              {stats.map((stat, index) => (
+                <div key={index} className="stat-card">
+                  <div className="stat-icon">{stat.icon}</div>
+                  <div className="stat-info">
+                    <div className="stat-value">{stat.value}</div>
+                    <div className="stat-label">{stat.label}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Settings */}
-      <section className="profile-settings-section">
-        <div className="container">
-          <h2 className="section-title">{t.settings.title}</h2>
-          <div className="settings-list">
-            <button className="setting-item">
-              <span className="setting-icon">👤</span>
-              <span className="setting-label">{t.settings.profile}</span>
-              <span className="setting-arrow">›</span>
-            </button>
-            <button className="setting-item">
-              <span className="setting-icon">🔔</span>
-              <span className="setting-label">{t.settings.notification}</span>
-              <span className="setting-arrow">›</span>
-            </button>
-            <button className="setting-item">
-              <span className="setting-icon">🔒</span>
-              <span className="setting-label">{t.settings.privacy}</span>
-              <span className="setting-arrow">›</span>
-            </button>
-            <button className="setting-item">
-              <span className="setting-icon">❓</span>
-              <span className="setting-label">{t.settings.help}</span>
-              <span className="setting-arrow">›</span>
-            </button>
+        {/* Children/Students Section */}
+        <section className="profile-children-section">
+          <div className="container">
+            <div className="section-header">
+              <h2 className="section-title">
+                {t.teacher.title}
+              </h2>
+              <button className="btn-add">
+                {t.teacher.addClass}
+              </button>
+            </div>
+            <div className="children-grid">
+              <div className="empty-state">
+                <div className="empty-icon"><Users size={48} className="text-gray-300 mx-auto" /></div>
+                <p>{t.teacher.empty}</p>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
-    </div>
+        </section>
+
+        {/* Recent Activity */}
+        <section className="profile-activity-section">
+          <div className="container">
+            <h2 className="section-title">{t.recentActivity.title}</h2>
+            <div className="activity-list">
+              <div className="empty-state">
+                <div className="empty-icon"><BarChart3 size={48} className="text-gray-300 mx-auto" /></div>
+                <p>{t.recentActivity.empty}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Settings */}
+        <section className="profile-settings-section">
+          <div className="container">
+            <h2 className="section-title">{t.settings.title}</h2>
+            <div className="settings-list">
+              <button className="setting-item">
+                <span className="setting-icon"><User size={20} /></span>
+                <span className="setting-label">{t.settings.profile}</span>
+                <span className="setting-arrow"><ChevronRight size={16} /></span>
+              </button>
+              <button className="setting-item">
+                <span className="setting-icon"><Bell size={20} /></span>
+                <span className="setting-label">{t.settings.notification}</span>
+                <span className="setting-arrow"><ChevronRight size={16} /></span>
+              </button>
+              <button className="setting-item">
+                <span className="setting-icon"><Lock size={20} /></span>
+                <span className="setting-label">{t.settings.privacy}</span>
+                <span className="setting-arrow"><ChevronRight size={16} /></span>
+              </button>
+              <button className="setting-item">
+                <span className="setting-icon"><HelpCircle size={20} /></span>
+                <span className="setting-label">{t.settings.help}</span>
+                <span className="setting-arrow"><ChevronRight size={16} /></span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
     </>
   );
 };

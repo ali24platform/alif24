@@ -28,19 +28,19 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     
     # OpenAI
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY") or "your_openai_api_key_here"
+    OPENAI_API_KEY: str = "your_openai_api_key_here"
     OPENAI_MODEL: str = "gpt-4"
     
     # Azure
-    AZURE_STORAGE_CONNECTION_STRING: str = os.getenv("AZURE_STORAGE_CONNECTION_STRING") or "DefaultEndpointsProtocol=https;AccountName=alifbe24;AccountKey=kNOPukOWmPce4VbxB7FSXL4SgVMml4zXkMTPdouqFhRLJwvp0Cp3rNpxFb3pkA766hfa00BBHSjR+AStteDO3Q==;EndpointSuffix=core.windows.net"
+    AZURE_STORAGE_CONNECTION_STRING: str = "DefaultEndpointsProtocol=https;AccountName=alifbe24;AccountKey=kNOPukOWmPce4VbxB7FSXL4SgVMml4zXkMTPdouqFhRLJwvp0Cp3rNpxFb3pkA766hfa00BBHSjR+AStteDO3Q==;EndpointSuffix=core.windows.net"
     AZURE_CONTAINER_NAME: str = "audiostories"
-    AZURE_SPEECH_KEY: Optional[str] = os.getenv("AZURE_SPEECH_KEY") or "54V9TJPS3HtXlzdnmUY0sgRv6NtugLsgFcf2s3yZlwS0Ogint3u6JQQJ99BLACYeBjFXJ3w3AAAYACOGlQP9"
+    AZURE_SPEECH_KEY: str = "54V9TJPS3HtXlzdnmUY0sgRv6NtugLsgFcf2s3yZlwS0Ogint3u6JQQJ99BLACYeBjFXJ3w3AAAYACOGlQP9"
     AZURE_SPEECH_REGION: str = "eastus"
-    AZURE_OPENAI_KEY: Optional[str] = os.getenv("AZURE_OPENAI_KEY") or "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk5XJ3w3AAABACOGUD56"
-    AZURE_OPENAI_ENDPOINT: Optional[str] = os.getenv("AZURE_OPENAI_ENDPOINT") or "https://deplo.cognitiveservices.azure.com/"
+    AZURE_OPENAI_KEY: str = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk5XJ3w3AAABACOGUD56"
+    AZURE_OPENAI_ENDPOINT: str = "https://deplo.cognitiveservices.azure.com/"
     AZURE_OPENAI_REGION: Optional[str] = None
-    AZURE_OPENAI_DEPLOYMENT_NAME: Optional[str] = "gpt-5-chat"
-    AZURE_OPENAI_API_VERSION: Optional[str] = "2025-01-01-preview"
+    AZURE_OPENAI_DEPLOYMENT_NAME: str = "gpt-5-chat"
+    AZURE_OPENAI_API_VERSION: str = "2025-01-01-preview"
     
     # Logging
     LOG_LEVEL: str = "info"  # Production: faqat ERROR va yuqori
@@ -53,13 +53,13 @@ class Settings(BaseSettings):
     RATE_LIMIT_WINDOW_MS: int = 900000
     RATE_LIMIT_MAX: int = 100
     
-    ADMIN_SECRET_KEY: str = os.getenv("ADMIN_SECRET_KEY") or "nurali_secret_2026"
+    ADMIN_SECRET_KEY: str = "nurali_secret_2026"
 
     # Notification Services
     ESKIZ_EMAIL: Optional[str] = "example@eskiz.uz"
     ESKIZ_PASSWORD: Optional[str] = "your_eskiz_password"
-    TELEGRAM_BOT_TOKEN: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN") or "8379431489:AAH2xUGuEy0_FZV8vnN8_vyIII13VqDPryU"
-    TELEGRAM_CHAT_ID: Optional[str] = os.getenv("TELEGRAM_CHAT_ID") or "234413715"
+    TELEGRAM_BOT_TOKEN: str = "8379431489:AAH2xUGuEy0_FZV8vnN8_vyIII13VqDPryU"
+    TELEGRAM_CHAT_ID: str = "234413715"
     
     # Email Settings
     SMTP_TLS: bool = True
@@ -89,41 +89,32 @@ class Settings(BaseSettings):
         # FIX: Vercel serverless functions often don't support IPv6 outbound, but Supabase DNS returns IPv6 first.
         # We must resolve the hostname to an IPv4 address manually to prevent "Cannot assign requested address" errors.
         try:
-            if url and "supabase.co" in url:
-                import socket
-                from urllib.parse import urlparse, urlunparse
-                
-                parsed = urlparse(url)
-                hostname = parsed.hostname
-                
-                # Resolve to IPv4
-                ip_address = socket.gethostbyname(hostname)
-                
-                # Reconstruct URL with IP address
-                # Note: We must pass 'sslmode=require' because using IP might mismatch cert validation 
-                # strictly speaking, but usually Supabase allows it if we don't verify-full, 
-                # OR we just rely on the fact that we are replacing the host in the string.
-                # Actually, sqlalchemy might complain if we replace host with IP without updating headers,
-                # but let's try just standard replacement first.
-                
-                # Better approach: Keep hostname but force IPv4? hard in python url.
-                # Let's use the IP. 
-                
-                # Replace hostname with IP in the netloc
-                new_netloc = parsed.netloc.replace(hostname, ip_address)
-                parsed = parsed._replace(netloc=new_netloc)
-                url = urlunparse(parsed)
-                
-                # Ensure sslmode is present (Supabase requires it)
-                if "sslmode" not in url:
-                    if "?" in url:
-                        url += "&sslmode=require"
-                    else:
-                        url += "?sslmode=require"
-                        
+            if url:
+                # Remove 'supa' parameter if present (not supported by psycopg2)
+                if "supa=" in url or "sslmode=" in url:
+                    from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
+                    
+                    parsed = urlparse(url)
+                    query_dict = parse_qs(parsed.query)
+                    
+                    # Remove unsupported 'supa' param
+                    if 'supa' in query_dict:
+                        del query_dict['supa']
+                    
+                    # Ensure sslmode is require (Postgres usually requires it on cloud)
+                    # But if it's already in query, we might want to keep it or normalize it.
+                    # psycopg2 expects sslmode in kwargs or query.
+                    # Let's keep it if present, or add it if missing for supabase.
+                    if 'sslmode' not in query_dict:
+                         query_dict['sslmode'] = ['require']
+                    
+                    # Reconstruct query
+                    new_query = urlencode(query_dict, doseq=True)
+                    parsed = parsed._replace(query=new_query)
+                    url = urlunparse(parsed)
+                    
         except Exception as e:
-            print(f"⚠️ DNS Resolution Warning: {e}")
-            # Fallback to original URL if resolution fails
+            print(f"⚠️ URL Parsing Warning: {e}")
             pass
 
         if url:

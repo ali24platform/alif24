@@ -26,28 +26,28 @@ const Navbar = () => {
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [achievementsModalOpen, setAchievementsModalOpen] = useState(false);
   const languageDropdownRef = useRef(null);
-  
+
   // const { totalStars, starsBreakdown, updateStars, getStarsHistory } = useStarsManager(); // TODO: Implement
   const totalStars = 0; // Temporary placeholder
   const starsBreakdown = { harf: 0, math: 0, ertak: 0 }; // Temporary placeholder
-  const updateStars = () => {}; // Temporary placeholder
+  const updateStars = () => { }; // Temporary placeholder
   const getStarsHistory = () => []; // Temporary placeholder
 
   // Language configurations with flags
   const languages = {
-    uz: { 
-      code: 'uz', 
-      flag: '🇺🇿', 
-  
+    uz: {
+      code: 'uz',
+      flag: '🇺🇿',
+
     },
-    ru: { 
-      code: 'ru', 
-      flag: '🇷🇺', 
- 
+    ru: {
+      code: 'ru',
+      flag: '🇷🇺',
+
     },
-    en: { 
-      code: 'en', 
-      flag: '🇺🇸', 
+    en: {
+      code: 'en',
+      flag: '🇺🇸',
 
     }
   };
@@ -56,10 +56,10 @@ const Navbar = () => {
 
   const profilePath = isAuthenticated && user ? (
     user.role === 'student' ? '/student-dashboard' :
-    user.role === 'teacher' ? '/teacher-dashboard' :
-    user.role === 'parent' ? '/parent-dashboard' :
-    user.role === 'admin' ? '/admin' :
-    '/profile'
+      user.role === 'teacher' ? '/teacher-dashboard' :
+        user.role === 'parent' ? '/parent-dashboard' :
+          user.role === 'admin' ? '/admin' :
+            '/profile'
   ) : '/profile';
 
   useEffect(() => {
@@ -145,11 +145,10 @@ const Navbar = () => {
   return (
     <>
       {/* Desktop/Mobile Navbar */}
-      <header className={`flex justify-between items-center px-5 h-[70px] shadow-lg sticky top-0 z-50 rounded-b-[10px] bg-[#4b30fbcc] ${
-        isMobile ? 'bg-transparent shadow-none' : ''
-      }`}>
+      <header className={`flex justify-between items-center px-5 h-[70px] shadow-lg sticky top-0 z-50 rounded-b-[10px] bg-[#4b30fbcc] ${isMobile ? 'bg-transparent shadow-none' : ''
+        }`}>
         <div className="flex items-center gap-4 ">
-          <div 
+          <div
             className="w-[65px] h-[65px] flex items-center gap-2 cursor-pointer"
             onClick={handleLogoClick}
           >
@@ -160,25 +159,25 @@ const Navbar = () => {
         {!isMobile && (
           <>
             <nav className="flex gap-6">
-              <a 
-                href="/dashboard" 
+              <a
+                href="/dashboard"
                 className="text-[#dcdcdc] text-lg transition-colors hover:text-white no-underline"
               >
                 {t('home') || 'Bosh sahifa'}
               </a>
-              <a 
-                href="/about" 
+              <a
+                href="/about"
                 className="text-[#dcdcdc] text-lg transition-colors hover:text-white no-underline"
               >
                 {t('aboutus') || 'Biz haqimizda'}
               </a>
-              <a 
-                href="/partners" 
+              <a
+                href="/partners"
                 className="text-[#dcdcdc] text-lg transition-colors hover:text-white no-underline"
               >
                 {t('partner') || 'Hamkorlar'}
               </a>
-              <a 
+              <a
                 href={profilePath}
                 onClick={handleProfileClick}
                 className="text-[#dcdcdc] text-lg transition-colors hover:text-white no-underline"
@@ -188,74 +187,72 @@ const Navbar = () => {
             </nav>
 
             <div className="flex items-center gap-4">
-              
-              {/* Language Selector with Flags */}
-              <div className="relative " ref={languageDropdownRef}>
-                <button 
-                  className="flex items-center gap-2 bg-gradient-to-r from-[#4b30fb] to-[#764ba2] text-white border border-white/30 rounded-full px-4 py-2 cursor-pointer transition-all text-white"
+
+              {/* Language Selector (Text-based, Pro Design) */}
+              <div className="relative" ref={languageDropdownRef}>
+                <button
+                  className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-xl px-4 py-2 cursor-pointer transition-all duration-300 group"
                   onClick={() => setLanguageDropdownOpen(!languageDropdownOpen)}
                 >
-                  <span className="text-2xl">{currentLanguage.flag}</span>
-                  <span className="text-sm font-medium">{currentLanguage.name}</span>
-                  <ChevronDown 
-                    size={16} 
-                    className={`transition-transform ${languageDropdownOpen ? 'rotate-180' : ''}`}
+                  <Globe size={18} className="text-white/80 group-hover:text-white transition-colors" />
+                  <span className="text-white font-bold tracking-wider text-sm">{currentLanguage.code.toUpperCase()}</span>
+                  <ChevronDown
+                    size={16}
+                    className={`text-white/80 transition-transform duration-300 ${languageDropdownOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
 
                 {/* Dropdown Menu */}
-                {languageDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-2xl overflow-hidden min-w-[200px] border border-gray-200 z-50">
-                    {Object.values(languages).map((lang) => (
-                      <button
-                        key={lang.code}
-                        onClick={() => setLanguage(lang.code)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 transition-all border-none text-left ${
-                          language === lang.code
-                            ? 'bg-gradient-to-r from-[#4b30fb] to-[#764ba2] text-white'
-                            : 'bg-white text-gray-800 hover:bg-gray-50'
+                <div
+                  className={`absolute top-full right-0 mt-3 bg-[#1a1a2e]/95 backdrop-blur-xl rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/10 overflow-hidden min-w-[160px] z-50 transition-all duration-300 origin-top-right ${languageDropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+                    }`}
+                >
+                  {Object.values(languages).map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => setLanguage(lang.code)}
+                      className={`w-full flex items-center justify-between px-4 py-3 transition-all border-none text-left group ${language === lang.code
+                          ? 'bg-white/10 text-white'
+                          : 'text-gray-300 hover:bg-white/5 hover:text-white'
                         }`}
-                      >
-                        <span className="text-3xl">{lang.flag}</span>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-sm">{lang.name}</span>
-                          <span className={`text-xs ${
-                            language === lang.code ? 'text-white/80' : 'text-gray-500'
-                          }`}>
-                            {lang.fullName}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-bold tracking-wider text-sm">{lang.code.toUpperCase()}</span>
+                        <span className="text-[10px] opacity-60 font-medium">
+                          {lang.code === 'uz' ? 'O\'zbekcha' : lang.code === 'ru' ? 'Русский' : 'English'}
+                        </span>
+                      </div>
+                      {language === lang.code && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#4b30fb] shadow-[0_0_8px_#4b30fb]"></div>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
-              
+
               {isAuthenticated ? (
                 <>
-                  <div className="flex items-center gap-2 bg-gradient-to-r from-[#4b30fb] to-[#764ba2] px-4 py-2 rounded-full text-white">
-                    <User size={18} />
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-xl text-white">
+                    <User size={18} className="text-white/90" />
                     <span className="text-sm font-medium">{user?.first_name || 'Foydalanuvchi'}</span>
                   </div>
 
-
-
-                  <button 
-                    className="bg-gradient-to-r from-[#4b30fb] to-[#764ba2] border-none rounded-full w-10 h-10 flex items-center justify-center cursor-pointer text-white transition-colors hover:bg-white/20"
+                  <button
+                    className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl w-10 h-10 flex items-center justify-center cursor-pointer text-white transition-all duration-300 hover:bg-white/20 hover:scale-105 hover:shadow-[0_0_15px_rgba(255,255,255,0.2)]"
                     onClick={handleLogout}
                     title="Chiqish"
                   >
-                    <LogOut size={20} />
+                    <LogOut size={18} />
                   </button>
                 </>
               ) : (
                 <>
-                  <button 
-                    className="flex items-center gap-2 bg-gradient-to-r from-[#4b30fb] to-[#764ba2] px-4 py-2 rounded-full cursor-pointer transition-all hover:bg-white/20 text-white border border-white/30"
+                  <button
+                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-xl px-5 py-2 cursor-pointer transition-all duration-300 text-white hover:shadow-[0_0_20px_rgba(75,48,251,0.4)]"
                     onClick={handleLogin}
                   >
                     <LogIn size={18} />
-                    <span className="text-sm font-medium">{t('login') || 'Kirish'}</span>
+                    <span className="text-sm font-bold tracking-wide">{t('login') || 'Kirish'}</span>
                   </button>
                 </>
               )}
@@ -265,43 +262,43 @@ const Navbar = () => {
 
         {isMobile && (
           <div className="flex items-center gap-3">
-            
+
             {/* Mobile Language Selector */}
-            <div className="relative " ref={languageDropdownRef}>
-              <button 
-                className="flex items-center gap-1 bg-gradient-to-r from-[#4b30fb] to-[#764ba2] border border-white/30 rounded-full px-2 py-1 cursor-pointer transition-all text-white"
+            <div className="relative" ref={languageDropdownRef}>
+              <button
+                className="flex items-center gap-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-3 py-1.5 cursor-pointer transition-all text-white active:scale-95"
                 onClick={() => setLanguageDropdownOpen(!languageDropdownOpen)}
               >
-                <span className="text-xl">{currentLanguage.flag}</span>
-                <ChevronDown 
-                  size={14} 
-                  className={`transition-transform ${languageDropdownOpen ? 'rotate-180' : ''}`}
+                <span className="text-sm font-bold tracking-wider">{currentLanguage.code.toUpperCase()}</span>
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform duration-300 ${languageDropdownOpen ? 'rotate-180' : ''}`}
                 />
               </button>
 
               {/* Mobile Dropdown Menu */}
-              {languageDropdownOpen && (
-                <div className="absolute top-full right-0 mt-2  rounded-xl shadow-2xl overflow-hidden min-w-[180px] border border-gray-200 z-50">
-                  {Object.values(languages).map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => setLanguage(lang.code)}
-                      className={`w-full flex items-center  gap-2 px-3 py-2 transition-all border-none text-left ${
-                        language === lang.code
-                          ? 'bg-gradient-to-r from-[#4b30fb] to-[#764ba2] text-white'
-                          : 'bg-white text-gray-800 hover:bg-gray-50'
+              <div
+                className={`absolute top-full right-0 mt-2 bg-[#1a1a2e]/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/10 overflow-hidden min-w-[140px] z-50 transition-all duration-300 origin-top-right ${languageDropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+                  }`}
+              >
+                {Object.values(languages).map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => setLanguage(lang.code)}
+                    className={`w-full flex items-center justify-between px-4 py-3 transition-all border-none text-left ${language === lang.code
+                        ? 'bg-white/10 text-white'
+                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
                       }`}
-                    >
-                      <span className="text-2xl">{lang.flag}</span>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-xs">{lang.name}</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+                  >
+                    <span className="font-bold text-sm tracking-wider">{lang.code.toUpperCase()}</span>
+                    {language === lang.code && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#4b30fb]"></div>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
-            
+
             {isAuthenticated ? (
               <>
                 <div className="flex items-center gap-1 bg-gradient-to-r from-[#4b30fb] to-[#764ba2] px-2 py-1 rounded-full text-white">
@@ -309,7 +306,7 @@ const Navbar = () => {
                   <span className="text-xs font-medium hidden sm:inline">{user?.first_name?.charAt(0) || 'F'}</span>
                 </div>
 
-                <button 
+                <button
                   className="bg-white/10 border-none rounded-full w-8 h-8 flex items-center justify-center cursor-pointer text-white transition-colors hover:bg-white/20"
                   onClick={handleLogout}
                   title="Chiqish"
@@ -319,7 +316,7 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <button 
+                <button
                   className="bg-gradient-to-r from-[#4b30fb] to-[#764ba2] border-none rounded-full w-8 h-8 flex items-center justify-center cursor-pointer text-white transition-colors hover:bg-white/20"
                   onClick={handleLogin}
                   title="Kirish"
@@ -335,37 +332,33 @@ const Navbar = () => {
       {/* Mobile Bottom Navbar */}
       {isMobile && (
         <nav className="fixed bottom-0 left-0 right-0 bg-[#1a1a2e] flex justify-around py-2 border-t border-white/10 z-[1000] shadow-lg">
-          <button 
-            className={`flex flex-col items-center text-gray-400 bg-none border-none text-xs gap-1 cursor-pointer p-2 transition-colors hover:text-[#4b30fb] ${
-              activeTab === 'home' ? 'text-[#4b30fb]' : ''
-            }`}
+          <button
+            className={`flex flex-col items-center text-gray-400 bg-none border-none text-xs gap-1 cursor-pointer p-2 transition-colors hover:text-[#4b30fb] ${activeTab === 'home' ? 'text-[#4b30fb]' : ''
+              }`}
             onClick={() => { navigate('/dashboard'); }}
           >
             <Home size={22} />
             <span>{t('home') || 'Bosh sahifa'}</span>
           </button>
-          <button 
-            className={`flex flex-col items-center text-gray-400 bg-none border-none text-xs gap-1 cursor-pointer p-2 transition-colors hover:text-[#4b30fb] ${
-              activeTab === 'lessons' ? 'text-[#4b30fb]' : ''
-            }`}
+          <button
+            className={`flex flex-col items-center text-gray-400 bg-none border-none text-xs gap-1 cursor-pointer p-2 transition-colors hover:text-[#4b30fb] ${activeTab === 'lessons' ? 'text-[#4b30fb]' : ''
+              }`}
             onClick={() => { navigate('/about'); }}
           >
             <Users size={22} />
             <span>{t('aboutus') || 'Biz haqimizda'}</span>
           </button>
-          <button 
-            className={`flex flex-col items-center text-gray-400 bg-none border-none text-xs gap-1 cursor-pointer p-2 transition-colors hover:text-[#4b30fb] ${
-              activeTab === 'games' ? 'text-[#4b30fb]' : ''
-            }`}
+          <button
+            className={`flex flex-col items-center text-gray-400 bg-none border-none text-xs gap-1 cursor-pointer p-2 transition-colors hover:text-[#4b30fb] ${activeTab === 'games' ? 'text-[#4b30fb]' : ''
+              }`}
             onClick={() => { navigate('/partners'); }}
           >
             <HandshakeIcon size={22} />
             <span>{t('partner') || 'Hamkorlar'}</span>
           </button>
-          <button 
-            className={`flex flex-col items-center text-gray-400 bg-none border-none text-xs gap-1 cursor-pointer p-2 transition-colors hover:text-[#4b30fb] ${
-              activeTab === 'profile' ? 'text-[#4b30fb]' : ''
-            }`}
+          <button
+            className={`flex flex-col items-center text-gray-400 bg-none border-none text-xs gap-1 cursor-pointer p-2 transition-colors hover:text-[#4b30fb] ${activeTab === 'profile' ? 'text-[#4b30fb]' : ''
+              }`}
             onClick={handleProfileClick}
           >
             <User size={22} />
@@ -375,7 +368,7 @@ const Navbar = () => {
       )}
 
       {/* Authentication Modals */}
-      <LoginModal 
+      <LoginModal
         isOpen={loginModalOpen}
         onClose={closeLoginModal}
         onSwitchToRegister={() => {
@@ -384,7 +377,7 @@ const Navbar = () => {
         }}
       />
 
-      <RegisterModal 
+      <RegisterModal
         isOpen={registerModalOpen}
         onClose={closeRegisterModal}
         onSwitchToLogin={() => {

@@ -180,14 +180,17 @@ const HomePage = () => {
       <div className="flex min-h-[calc(100vh-70px)] relative">
         {/* Sidebar - Neon Design */}
         <aside
-          className={`fixed top-[70px] pb-[120px] left-0 h-[calc(100vh-70px)] bg-gradient-to-b from-[#1a1a2e] via-[#16213e] to-[#0f1624] shadow-[2px_0_20px_rgba(75,48,251,0.5)] z-[998] overflow-y-auto transition-all duration-300 border-r-2 border-[rgba(75,48,251,0.3)] ${sidebarOpen ? 'translate-x-0' : 'translate-x-0'
+          className={`fixed top-[70px] pb-[120px] left-0 h-[calc(100vh-70px)] z-[998] overflow-y-auto transition-all duration-300 
+            ${sidebarOpen
+              ? 'bg-gradient-to-b from-[#1a1a2e] via-[#16213e] to-[#0f1624] shadow-[2px_0_20px_rgba(75,48,251,0.5)] border-r-2 border-[rgba(75,48,251,0.3)] translate-x-0'
+              : 'bg-transparent border-none shadow-none translate-x-0'
             }`}
-          style={{ width: sidebarOpen ? '280px' : '70px' }}
+          style={{ width: sidebarOpen ? '280px' : '70px', pointerEvents: sidebarOpen ? 'auto' : 'none' }}
         >
           <div className={`transition-all duration-300 ${sidebarOpen ? 'p-3' : 'p-2'}`}>
             {/* Toggle Sidebar Button */}
             <button
-              className={`w-full bg-gradient-to-br from-[#ff00ff] to-[#00ffff] border-none text-white rounded-xl cursor-pointer flex items-center justify-center transition-all duration-300 shadow-[0_4px_15px_rgba(255,0,255,0.6)] hover:shadow-[0_8px_25px_rgba(0,255,255,0.8)] hover:scale-110 mb-3 ${sidebarOpen ? 'p-3' : 'p-2.5'}`}
+              className={`w-full bg-gradient-to-br from-[#ff00ff] to-[#00ffff] border-none text-white rounded-xl cursor-pointer flex items-center justify-center transition-all duration-300 shadow-[0_4px_15px_rgba(255,0,255,0.6)] hover:shadow-[0_8px_25px_rgba(0,255,255,0.8)] hover:scale-110 mb-3 pointer-events-auto ${sidebarOpen ? 'p-3' : 'p-2.5'}`}
               onClick={toggleSidebar}
             >
               {sidebarOpen ? <X size={24} /> : <Menu size={20} />}
@@ -254,7 +257,7 @@ const HomePage = () => {
 
         {/* Main Content Area */}
         <main
-          className={`flex-1 transition-all duration-300 relative z-10 ${sidebarOpen ? 'ml-[280px]' : 'ml-[70px]'
+          className={`flex-1 transition-all duration-300 relative z-10 ${sidebarOpen ? 'ml-[280px]' : 'ml-0'
             }`}
         >
           <div className="p-5 pb-[100px]">

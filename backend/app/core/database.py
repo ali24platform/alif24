@@ -38,10 +38,17 @@ def get_db():
 async def init_db():
     """Initialize database"""
     try:
+        # Import models to ensure they are registered with Base.metadata
+        # Local import to avoid circular dependency
+        from app import models  # noqa
+        
+        # Create tables if they don't exist
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created/verified")
+
         # Test connection
         with engine.connect() as conn:
             pass  # Connection test successful
-            # logger.info("Database connection established successfully")  # Production: o'chirilgan
     except Exception as e:
         logger.error(f"⚠️ WARNING: Unable to connect to the database: {e}")
         logger.error("The Application will start, but database features will fail until DATABASE_URL is configured.")

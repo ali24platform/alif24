@@ -786,3 +786,27 @@ INFO:     Waiting for application startup.
 2026-02-09 02:21:45 [INFO]: ✅ Database tables created/verified
 2026-02-09 02:21:45 [INFO]: ✅ Database connection verified successfully
 INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/api/v1/verification.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [48948]
+/Users/hazratqul/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:     Started server process [48983]
+INFO:     Waiting for application startup.
+2026-02-09 02:28:06 [INFO]: ✅ Database tables created/verified
+2026-02-09 02:28:06 [INFO]: ✅ Database connection verified successfully
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/api/v1/verification.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [48983]
+/Users/hazratqul/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:     Started server process [48984]
+INFO:     Waiting for application startup.
+2026-02-09 02:28:08 [INFO]: ✅ Database tables created/verified
+2026-02-09 02:28:08 [INFO]: ✅ Database connection verified successfully
+INFO:     Application startup complete.

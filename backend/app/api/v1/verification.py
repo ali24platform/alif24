@@ -73,12 +73,23 @@ async def send_verification_code(
     """
     import re
     
+    # Valid Uzbek mobile operator prefixes
+    VALID_PREFIXES = ('90', '91', '93', '94', '95', '97', '98', '99', '33', '55', '77', '88')
+    
     # Validate phone format
     phone = re.sub(r'\s+', '', request.phone)
     if not re.match(r'^\+998\d{9}$', phone):
         raise HTTPException(
             status_code=400,
             detail="Phone number must be in format +998XXXXXXXXX"
+        )
+    
+    # Validate operator prefix
+    prefix = phone[4:6]  # Extract prefix after +998
+    if prefix not in VALID_PREFIXES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid operator prefix. Valid prefixes: {', '.join(VALID_PREFIXES)}"
         )
     
     service = TelegramBotService(db)
@@ -103,12 +114,23 @@ async def verify_code(
     """
     import re
     
+    # Valid Uzbek mobile operator prefixes
+    VALID_PREFIXES = ('90', '91', '93', '94', '95', '97', '98', '99', '33', '55', '77', '88')
+    
     # Validate phone format
     phone = re.sub(r'\s+', '', request.phone)
     if not re.match(r'^\+998\d{9}$', phone):
         raise HTTPException(
             status_code=400,
             detail="Phone number must be in format +998XXXXXXXXX"
+        )
+    
+    # Validate operator prefix
+    prefix = phone[4:6]  # Extract prefix after +998
+    if prefix not in VALID_PREFIXES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid operator prefix. Valid prefixes: {', '.join(VALID_PREFIXES)}"
         )
     
     # Validate code format

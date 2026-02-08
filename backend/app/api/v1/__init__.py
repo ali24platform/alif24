@@ -40,5 +40,10 @@ router.include_router(coins.router)
 router.include_router(live_quiz.router)
 
 # SECRET: Admin Panel (yashirin admin panel)
+# SECRET: Admin Panel (yashirin admin panel)
 from app.api.v1 import admin_panel
 router.include_router(admin_panel.router)
+
+# DEBUG: Database Info
+from app.api.v1.endpoints import debug
+router.include_router(debug.router, prefix="/debug", tags=["debug"])

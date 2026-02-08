@@ -44,13 +44,16 @@ async def init_db():
         
         # Create tables if they don't exist
         Base.metadata.create_all(bind=engine)
-        logger.info("Database tables created/verified")
+        logger.info("✅ Database tables created/verified")
 
-        # Test connection
+        # Test connection with actual query
         with engine.connect() as conn:
-            pass  # Connection test successful
+            from sqlalchemy import text
+            conn.execute(text("SELECT 1"))
+            logger.info("✅ Database connection verified successfully")
+            
     except Exception as e:
-        logger.error(f"⚠️ WARNING: Unable to connect to the database: {e}")
-        logger.error("The Application will start, but database features will fail until DATABASE_URL is configured.")
-        # raise  <-- Commented out to prevent Vercel 500 crash on startup
+        logger.error(f"❌ CRITICAL: Unable to connect to the database: {e}")
+        logger.error("The Application will start, but database features will fail!")
+        # Note: Not raising to allow Vercel deployment, but logged as critical
 

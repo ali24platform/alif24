@@ -5,6 +5,9 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 # Add current directory to path
 current_dir = Path(__file__).parent.absolute()
@@ -15,6 +18,11 @@ try:
     from app.core.database import init_db
     from app.api.v1 import router as api_router
     from app.letters.router import router as letters_router
+    from app.middleware.error_handler import error_handler
+    from app.core.errors import AppError
+
+    # Rate limiter setup
+    limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -30,6 +38,14 @@ try:
         openapi_url=f"{settings.API_PREFIX}/openapi.json",
         lifespan=lifespan
     )
+
+    # Rate Limiter State
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+    # Global Error Handler
+    app.add_exception_handler(AppError, error_handler)
+    app.add_exception_handler(Exception, error_handler)
 
     # CORS Configuration
     origins = ["*"]

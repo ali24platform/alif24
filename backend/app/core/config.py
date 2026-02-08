@@ -12,12 +12,12 @@ class Settings(BaseSettings):
     
     # Database
     # Database
-    DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or "postgresql://postgres:Xazrat_ali571@db.rvboscxljclteqvlxmeo.supabase.co:5432/postgres"
-    DB_HOST: str = "db.rvboscxljclteqvlxmeo.supabase.co"
-    DB_PORT: int = 5432
-    DB_NAME: str = "postgres"
-    DB_USER: str = "postgres"
-    DB_PASSWORD: str = "Xazrat_ali571"
+    DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    DB_HOST: str = os.getenv("DB_HOST", "localhost")
+    DB_PORT: int = int(os.getenv("DB_PORT", 5432))
+    DB_NAME: str = os.getenv("DB_NAME", "postgres")
+    DB_USER: str = os.getenv("DB_USER", "postgres")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
     DB_DIALECT: str = "postgresql"
     
     # JWT

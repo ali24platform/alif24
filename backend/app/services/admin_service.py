@@ -8,15 +8,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 import logging
 import json
-import logging
-import json
-
 from app.core.errors import BadRequestError, NotFoundError
 from app.models import (
     User, UserRole, AccountStatus,
     TeacherProfile, TeacherStatus,
     ParentProfile, StudentProfile,
-    ModeratorProfile, ModeratorRoleType
+    ModeratorProfile, ModeratorRoleType,
+    Classroom
 )
 
 
@@ -282,7 +280,7 @@ class AdminService:
         if not user:
             raise NotFoundError("User not found")
         
-        if user.role == UserRole.super_admin:
+        if user.role == UserRole.moderator:
             raise BadRequestError("Cannot modify super admin status")
         
         old_status = user.status

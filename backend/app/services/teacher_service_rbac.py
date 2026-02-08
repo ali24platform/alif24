@@ -6,6 +6,7 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 
 from app.core.errors import BadRequestError, NotFoundError, ConflictError, ForbiddenError
 from app.models import (
@@ -218,6 +219,11 @@ class TeacherService:
         if not classroom:
             raise NotFoundError("Invalid join code")
         
+        if not classroom.is_active:
+            raise BadRequestError("This classroom is no longer active")
+        
+        # Get the teacher who owns this classroom
+        teacher_user_id = classroom.teacher.user_id
         return self.add_student_to_class(teacher_user_id, classroom.id, student_user_id)
     
     def remove_student_from_class(

@@ -62,9 +62,7 @@ class AuthService:
         # Save refresh token
         user.refresh_token = refresh_token
         self.db.commit()
-        
-        # logger.info(f"New user registered: {identifier}")  # Production: o'chirilgan
-        
+
         return {
             "user": user.to_dict(),
             "access_token": access_token,
@@ -124,9 +122,7 @@ class AuthService:
         user.refresh_token = refresh_token
         user.last_login_at = datetime.utcnow()
         self.db.commit()
-        
-        # logger.info(f"User logged in: {identifier}")  # Production: o'chirilgan
-        
+
         return {
             "user": user.to_dict(),
             "access_token": access_token,
@@ -165,7 +161,6 @@ class AuthService:
         if user:
             user.refresh_token = None
             self.db.commit()
-        # logger.info(f"User logged out: {user_id}")  # Production: o'chirilgan
     
     async def change_password(self, user_id: str, current_password: str, new_password: str):
         """Change password"""
@@ -178,8 +173,6 @@ class AuthService:
         
         user.set_password(new_password)
         self.db.commit()
-        
-        # logger.info(f"Password changed for user: {user_id}")  # Production: o'chirilgan
     
     async def get_profile(self, user_id: str):
         """Get current user profile"""

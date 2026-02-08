@@ -58,74 +58,83 @@ class TelegramBotService:
     
     async def send_verification_code(self, phone: str, lang: str = "uz") -> Dict[str, Any]:
         """Send verification code to user via Telegram"""
-        # Multi-language messages
-        messages = {
-            "uz": {
-                "not_linked": "Ushbu telefon raqam Telegram botga ulanmagan. Iltimos, avval @Alif24Bot ga /start yozing.",
-                "code_sent": "Tasdiqlash kodi Telegram orqali yuborildi",
-                "send_error": "Telegram orqali xabar yuborishda xatolik",
-                "code_title": "🔐 *Tasdiqlash kodi*",
-                "your_code": "Sizning tasdiqlash kodingiz",
-                "expires": "Kod 5 daqiqa ichida amal qiladi",
-                "warning": "Bu kodni hech kimga bermang!"
-            },
-            "ru": {
-                "not_linked": "Этот номер телефона не привязан к Telegram боту. Пожалуйста, сначала напишите @Alif24Bot /start.",
-                "code_sent": "Код подтверждения отправлен через Telegram",
-                "send_error": "Ошибка отправки сообщения через Telegram",
-                "code_title": "🔐 *Код подтверждения*",
-                "your_code": "Ваш код подтверждения",
-                "expires": "Код действителен 5 минут",
-                "warning": "Никому не сообщайте этот код!"
-            },
-            "en": {
-                "not_linked": "This phone number is not linked to the Telegram bot. Please start @Alif24Bot with /start first.",
-                "code_sent": "Verification code sent via Telegram",
-                "send_error": "Error sending message via Telegram",
-                "code_title": "🔐 *Verification Code*",
-                "your_code": "Your verification code",
-                "expires": "Code expires in 5 minutes",
-                "warning": "Do not share this code with anyone!"
+        try:
+            # Multi-language messages
+            messages = {
+                "uz": {
+                    "not_linked": "Ushbu telefon raqam Telegram botga ulanmagan. Iltimos, avval @Alif24Bot ga /start yozing.",
+                    "code_sent": "Tasdiqlash kodi Telegram orqali yuborildi",
+                    "send_error": "Telegram orqali xabar yuborishda xatolik",
+                    "code_title": "🔐 *Tasdiqlash kodi*",
+                    "your_code": "Sizning tasdiqlash kodingiz",
+                    "expires": "Kod 5 daqiqa ichida amal qiladi",
+                    "warning": "Bu kodni hech kimga bermang!"
+                },
+                "ru": {
+                    "not_linked": "Этот номер телефона не привязан к Telegram боту. Пожалуйста, сначала напишите @Alif24Bot /start.",
+                    "code_sent": "Код подтверждения отправлен через Telegram",
+                    "send_error": "Ошибка отправки сообщения через Telegram",
+                    "code_title": "🔐 *Код подтверждения*",
+                    "your_code": "Ваш код подтверждения",
+                    "expires": "Код действителен 5 минут",
+                    "warning": "Никому не сообщайте этот код!"
+                },
+                "en": {
+                    "not_linked": "This phone number is not linked to the Telegram bot. Please start @Alif24Bot with /start first.",
+                    "code_sent": "Verification code sent via Telegram",
+                    "send_error": "Error sending message via Telegram",
+                    "code_title": "🔐 *Verification Code*",
+                    "your_code": "Your verification code",
+                    "expires": "Code expires in 5 minutes",
+                    "warning": "Do not share this code with anyone!"
+                }
             }
-        }
-        t = messages.get(lang, messages["uz"])
-        
-        # Find Telegram user by phone
-        tg_user = self.db.query(TelegramUser).filter(
-            TelegramUser.phone == phone
-        ).first()
-        
-        if not tg_user:
-            return {
-                "success": False,
-                "message": t["not_linked"]
-            }
-        
-        # Create verification code
-        verification = PhoneVerification.create_for_phone(phone, expires_minutes=5)
-        self.db.add(verification)
-        self.db.commit()
-        
-        # Send code via Telegram (fixed newline escaping)
-        message = f"{t['code_title']}\n\n{t['your_code']}: `{verification.code}`\n\n⏱ {t['expires']}\n\n⚠️ {t['warning']}"
+            t = messages.get(lang, messages["uz"])
+            
+            # Find Telegram user by phone
+            tg_user = self.db.query(TelegramUser).filter(
+                TelegramUser.phone == phone
+            ).first()
+            
+            if not tg_user:
+                return {
+                    "success": False,
+                    "message": t["not_linked"]
+                }
+            
+            # Create verification code
+            verification = PhoneVerification.create_for_phone(phone, expires_minutes=5)
+            self.db.add(verification)
+            self.db.commit()
+            
+            # Send code via Telegram (fixed newline escaping)
+            message = f"{t['code_title']}\n\n{t['your_code']}: `{verification.code}`\n\n⏱ {t['expires']}\n\n⚠️ {t['warning']}"
 
-        result = await self._make_request("sendMessage", {
-            "chat_id": tg_user.telegram_chat_id,
-            "text": message,
-            "parse_mode": "Markdown"
-        })
-        
-        if result.get("ok"):
-            return {
-                "success": True,
-                "message": t["code_sent"],
-                "expires_in": 300
-            }
-        else:
-            logger.error(f"Telegram API error: {result}")
+            result = await self._make_request("sendMessage", {
+                "chat_id": tg_user.telegram_chat_id,
+                "text": message,
+                "parse_mode": "Markdown"
+            })
+            
+            if result.get("ok"):
+                return {
+                    "success": True,
+                    "message": t["code_sent"],
+                    "expires_in": 300
+                }
+            else:
+                logger.error(f"Telegram API error: {result}")
+                return {
+                    "success": False,
+                    "message": t["send_error"]
+                }
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            logger.error(f"CRITICAL ERROR in send_verification_code: {e}\n{error_trace}")
             return {
                 "success": False,
-                "message": t["send_error"]
+                "message": "Server xatoligi: Iltimos keyinroq urinib ko'ring"
             }
     
     def verify_code(self, phone: str, code: str, lang: str = "uz") -> Dict[str, Any]:

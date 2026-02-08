@@ -515,3 +515,37 @@ INFO:     Finished server process [40083]
 INFO:     Started server process [40084]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
+INFO:     127.0.0.1:61311 - "POST /api/v1/verification/send-code HTTP/1.1" 400 Bad Request
+INFO:     127.0.0.1:61433 - "POST /api/v1/verification/send-code HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/services/telegram_bot_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [40084]
+Failed to start FastAPI app: expected an indented block (telegram_bot_service.py, line 64)
+Traceback (most recent call last):
+  File "/Users/hazratqul/Documents/alif24-platform_ready1 (1)/backend/main.py", line 16, in <module>
+    from app.api.v1 import router as api_router
+  File "/Users/hazratqul/Documents/alif24-platform_ready1 (1)/backend/app/api/v1/__init__.py", line 3, in <module>
+    from app.api.v1 import verification
+  File "/Users/hazratqul/Documents/alif24-platform_ready1 (1)/backend/app/api/v1/verification.py", line 13, in <module>
+    from app.services.telegram_bot_service import TelegramBotService
+  File "/Users/hazratqul/Documents/alif24-platform_ready1 (1)/backend/app/services/telegram_bot_service.py", line 64
+    messages = {
+    ^
+IndentationError: expected an indented block
+
+INFO:     Started server process [40909]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/services/telegram_bot_service.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [40909]
+/Users/hazratqul/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:     Started server process [41019]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:62043 - "POST /api/v1/verification/send-code HTTP/1.1" 200 OK

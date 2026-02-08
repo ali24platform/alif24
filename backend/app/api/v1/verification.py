@@ -22,11 +22,13 @@ router = APIRouter(prefix="/verification", tags=["verification"])
 class SendCodeRequest(BaseModel):
     """Request to send verification code"""
     phone: str = Field(..., description="Phone number in format +998XXXXXXXXX")
+    lang: str = Field(default="uz", description="Language code: uz, ru, en")
     
     class Config:
         json_schema_extra = {
             "example": {
-                "phone": "+998901234567"
+                "phone": "+998901234567",
+                "lang": "uz"
             }
         }
 
@@ -35,12 +37,14 @@ class VerifyCodeRequest(BaseModel):
     """Request to verify code"""
     phone: str = Field(..., description="Phone number")
     code: str = Field(..., min_length=6, max_length=6, description="6-digit verification code")
+    lang: str = Field(default="uz", description="Language code: uz, ru, en")
     
     class Config:
         json_schema_extra = {
             "example": {
                 "phone": "+998901234567",
-                "code": "123456"
+                "code": "123456",
+                "lang": "uz"
             }
         }
 
@@ -78,7 +82,7 @@ async def send_verification_code(
         )
     
     service = TelegramBotService(db)
-    result = await service.send_verification_code(phone)
+    result = await service.send_verification_code(phone, request.lang)
     
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])
@@ -115,7 +119,7 @@ async def verify_code(
         )
     
     service = TelegramBotService(db)
-    result = service.verify_code(phone, request.code)
+    result = service.verify_code(phone, request.code, request.lang)
     
     if not result["success"]:
         raise HTTPException(status_code=400, detail=result["message"])

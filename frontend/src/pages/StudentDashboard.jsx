@@ -300,21 +300,29 @@ const StudentDashboard = () => {
             <Navbar />
             <div className="bg-[#f0f2f5] min-h-screen pt-4 pb-20 md:pb-4">
                 <div className="container mx-auto px-4">
-                    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-50 flex justify-around">
+                    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 z-50 flex justify-around items-center">
                         {['dashboard', 'tasks', 'library', 'achievements'].map(tab => (
-                            <button key={tab} onClick={() => setActiveTab(tab)} className={`flex flex-col items-center p-2 rounded-lg ${activeTab === tab ? 'text-blue-600 bg-blue-50' : 'text-gray-400'}`}>
-                                {tab === 'dashboard' && <Star size={24} />}
-                                {tab === 'tasks' && <CheckCircle size={24} />}
-                                {tab === 'library' && <BookOpen size={24} />}
-                                {tab === 'achievements' && <Trophy size={24} />}
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[64px] h-[56px] transition-all ${activeTab === tab ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                {tab === 'dashboard' && <Star size={22} />}
+                                {tab === 'tasks' && <CheckCircle size={22} />}
+                                {tab === 'library' && <BookOpen size={22} />}
+                                {tab === 'achievements' && <Trophy size={22} />}
                                 <span className="text-[10px] mt-1 font-medium">{t.tabs[tab]}</span>
                             </button>
                         ))}
                     </div>
 
-                    <div className="hidden md:flex gap-4 mb-8 bg-white p-2 rounded-2xl shadow-sm border border-gray-100 inline-flex">
+                    <div className="hidden md:flex gap-2 mb-8 bg-white p-2 rounded-2xl shadow-sm border border-gray-100 w-fit">
                         {['dashboard', 'tasks', 'library', 'achievements'].map(tab => (
-                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-2.5 rounded-xl font-medium transition-all ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-600 hover:bg-gray-50'}`}>
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`px-6 py-2.5 rounded-xl font-medium transition-all min-h-[44px] flex items-center justify-center ${activeTab === tab ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-600 hover:bg-gray-50'}`}
+                            >
                                 {t.tabs[tab]}
                             </button>
                         ))}

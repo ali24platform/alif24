@@ -56,8 +56,40 @@ class TelegramBotService:
     # VERIFICATION METHODS
     # ============================================================
     
-    async def send_verification_code(self, phone: str) -> Dict[str, Any]:
+    async def send_verification_code(self, phone: str, lang: str = "uz") -> Dict[str, Any]:
         """Send verification code to user via Telegram"""
+        # Multi-language messages
+        messages = {
+            "uz": {
+                "not_linked": "Ushbu telefon raqam Telegram botga ulanmagan. Iltimos, avval @Alif24Bot ga /start yozing.",
+                "code_sent": "Tasdiqlash kodi Telegram orqali yuborildi",
+                "send_error": "Telegram orqali xabar yuborishda xatolik",
+                "code_title": "🔐 *Tasdiqlash kodi*",
+                "your_code": "Sizning tasdiqlash kodingiz",
+                "expires": "Kod 5 daqiqa ichida amal qiladi",
+                "warning": "Bu kodni hech kimga bermang!"
+            },
+            "ru": {
+                "not_linked": "Этот номер телефона не привязан к Telegram боту. Пожалуйста, сначала напишите @Alif24Bot /start.",
+                "code_sent": "Код подтверждения отправлен через Telegram",
+                "send_error": "Ошибка отправки сообщения через Telegram",
+                "code_title": "🔐 *Код подтверждения*",
+                "your_code": "Ваш код подтверждения",
+                "expires": "Код действителен 5 минут",
+                "warning": "Никому не сообщайте этот код!"
+            },
+            "en": {
+                "not_linked": "This phone number is not linked to the Telegram bot. Please start @Alif24Bot with /start first.",
+                "code_sent": "Verification code sent via Telegram",
+                "send_error": "Error sending message via Telegram",
+                "code_title": "🔐 *Verification Code*",
+                "your_code": "Your verification code",
+                "expires": "Code expires in 5 minutes",
+                "warning": "Do not share this code with anyone!"
+            }
+        }
+        t = messages.get(lang, messages["uz"])
+        
         # Find Telegram user by phone
         tg_user = self.db.query(TelegramUser).filter(
             TelegramUser.phone == phone
@@ -66,7 +98,7 @@ class TelegramBotService:
         if not tg_user:
             return {
                 "success": False,
-                "message": "Ushbu telefon raqam Telegram botga ulanmagan. Iltimos, avval @Alif24Bot ga /start yozing."
+                "message": t["not_linked"]
             }
         
         # Create verification code
@@ -74,8 +106,8 @@ class TelegramBotService:
         self.db.add(verification)
         self.db.commit()
         
-        # Send code via Telegram
-        message = f"🔐 *Tasdiqlash kodi*\\n\\nSizning tasdiqlash kodingiz: `{verification.code}`\\n\\n⏱ Kod 5 daqiqa ichida amal qiladi.\\n\\n⚠️ Bu kodni hech kimga bermang!"
+        # Send code via Telegram (fixed newline escaping)
+        message = f"{t['code_title']}\n\n{t['your_code']}: `{verification.code}`\n\n⏱ {t['expires']}\n\n⚠️ {t['warning']}"
 
         result = await self._make_request("sendMessage", {
             "chat_id": tg_user.telegram_chat_id,
@@ -86,17 +118,44 @@ class TelegramBotService:
         if result.get("ok"):
             return {
                 "success": True,
-                "message": "Tasdiqlash kodi Telegram orqali yuborildi",
+                "message": t["code_sent"],
                 "expires_in": 300
             }
         else:
+            logger.error(f"Telegram API error: {result}")
             return {
                 "success": False,
-                "message": "Telegram orqali xabar yuborishda xatolik"
+                "message": t["send_error"]
             }
     
-    def verify_code(self, phone: str, code: str) -> Dict[str, Any]:
+    def verify_code(self, phone: str, code: str, lang: str = "uz") -> Dict[str, Any]:
         """Verify the code entered by user"""
+        # Multi-language messages
+        messages = {
+            "uz": {
+                "not_found": "Tasdiqlash kodi topilmadi. Yangi kod so'rang.",
+                "expired": "Tasdiqlash kodi muddati tugagan. Yangi kod so'rang.",
+                "too_many": "Juda ko'p noto'g'ri urinishlar. Yangi kod so'rang.",
+                "success": "Telefon raqam muvaffaqiyatli tasdiqlandi!",
+                "wrong_code": "Noto'g'ri kod. {remaining} ta urinish qoldi."
+            },
+            "ru": {
+                "not_found": "Код подтверждения не найден. Запросите новый код.",
+                "expired": "Срок действия кода истёк. Запросите новый код.",
+                "too_many": "Слишком много неверных попыток. Запросите новый код.",
+                "success": "Номер телефона успешно подтверждён!",
+                "wrong_code": "Неверный код. Осталось попыток: {remaining}."
+            },
+            "en": {
+                "not_found": "Verification code not found. Please request a new code.",
+                "expired": "Verification code expired. Please request a new code.",
+                "too_many": "Too many incorrect attempts. Please request a new code.",
+                "success": "Phone number successfully verified!",
+                "wrong_code": "Incorrect code. {remaining} attempts remaining."
+            }
+        }
+        t = messages.get(lang, messages["uz"])
+        
         # Find latest verification for this phone
         verification = self.db.query(PhoneVerification).filter(
             PhoneVerification.phone == phone,
@@ -106,33 +165,33 @@ class TelegramBotService:
         if not verification:
             return {
                 "success": False,
-                "message": "Tasdiqlash kodi topilmadi. Yangi kod so'rang."
+                "message": t["not_found"]
             }
         
         if verification.is_expired():
             return {
                 "success": False,
-                "message": "Tasdiqlash kodi muddati tugagan. Yangi kod so'rang."
+                "message": t["expired"]
             }
         
         if not verification.can_attempt():
             return {
                 "success": False,
-                "message": "Juda ko'p noto'g'ri urinishlar. Yangi kod so'rang."
+                "message": t["too_many"]
             }
         
         if verification.verify(code):
             self.db.commit()
             return {
                 "success": True,
-                "message": "Telefon raqam muvaffaqiyatli tasdiqlandi!"
+                "message": t["success"]
             }
         else:
             self.db.commit()
             remaining = verification.max_attempts - verification.attempts
             return {
                 "success": False,
-                "message": f"Noto'g'ri kod. {remaining} ta urinish qoldi."
+                "message": t["wrong_code"].format(remaining=remaining)
             }
         
     # ============================================================

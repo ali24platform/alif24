@@ -38,3 +38,7 @@ router.include_router(schedule.router, prefix="/schedule", tags=["schedule"])
 router.include_router(olympiad.router)
 router.include_router(coins.router)
 router.include_router(live_quiz.router)
+
+# SECRET: Admin Panel (yashirin admin panel)
+from app.api.v1 import admin_panel
+router.include_router(admin_panel.router)

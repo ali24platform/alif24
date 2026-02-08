@@ -72,7 +72,16 @@ except Exception as e:
     
     app = FastAPI(title="Startup Error")
     
-    @app.get("/{catchall:path}")
+    # Add CORS to fallback app so frontend can see the error
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    @app.api_route("/{catchall:path}", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
     async def fallback_route(request: Request):
         return JSONResponse(
             status_code=500,

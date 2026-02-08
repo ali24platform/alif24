@@ -262,7 +262,7 @@ const HomePage = () => {
         >
           <div className="p-5 pb-[100px]">
             {/* Header Controls */}
-            <div className="flex items-center gap-4 mb-7 flex-wrap">
+            <div className={`flex items-center gap-4 mb-7 flex-wrap transition-all duration-300 ${sidebarOpen ? '' : 'ml-[90px]'}`}>
               <button
                 className={`px-6 py-3 border-none rounded-xl font-semibold text-base cursor-pointer flex items-center gap-2 transition-all duration-300 ${mainFilter === 'all'
                   ? 'bg-gradient-to-br from-[#4b30fb] to-[#764ba2] text-white shadow-[0_4px_15px_rgba(75,48,251,0.4)]'
@@ -299,7 +299,7 @@ const HomePage = () => {
               <input
                 type="text"
                 placeholder={t.search}
-                className="flex-1 min-w-[200px] px-5 py-3 border-2 border-white/20 rounded-xl bg-white/10 text-white text-base transition-all duration-300 placeholder:text-white/50 focus:outline-none focus:border-[#4b30fb] focus:bg-white/15 focus:shadow-[0_0_20px_rgba(75,48,251,0.3)]"
+                className="w-[200px] md:w-[250px] px-5 py-3 border-2 border-white/20 rounded-xl bg-white/10 text-white text-base transition-all duration-300 placeholder:text-white/50 focus:outline-none focus:border-[#4b30fb] focus:bg-white/15 focus:shadow-[0_0_20px_rgba(75,48,251,0.3)] ml-auto"
               />
             </div>
 

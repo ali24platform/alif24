@@ -180,7 +180,7 @@ const HomePage = () => {
       <div className="flex min-h-[calc(100vh-70px)] relative">
         {/* Sidebar - Neon Design */}
         <aside
-          className={`fixed top-[70px] pb-[120px] left-0 h-[calc(100vh-70px)] z-[998] overflow-y-auto transition-all duration-300 
+          className={`fixed top-[90px] pb-[120px] left-0 h-[calc(100vh-90px)] z-[998] overflow-y-auto transition-all duration-300 
             ${sidebarOpen
               ? 'bg-gradient-to-b from-[#1a1a2e] via-[#16213e] to-[#0f1624] shadow-[2px_0_20px_rgba(75,48,251,0.5)] border-r-2 border-[rgba(75,48,251,0.3)] translate-x-0'
               : 'bg-transparent border-none shadow-none translate-x-0'
@@ -299,7 +299,7 @@ const HomePage = () => {
               <input
                 type="text"
                 placeholder={t.search}
-                className="w-[200px] md:w-[250px] px-5 py-3 border-2 border-white/20 rounded-xl bg-white/10 text-white text-base transition-all duration-300 placeholder:text-white/50 focus:outline-none focus:border-[#4b30fb] focus:bg-white/15 focus:shadow-[0_0_20px_rgba(75,48,251,0.3)] ml-auto"
+                className="flex-1 min-w-[200px] md:min-w-[250px] px-5 py-3 border-2 border-white/20 rounded-xl bg-white/10 text-white text-base transition-all duration-300 placeholder:text-white/50 focus:outline-none focus:border-[#4b30fb] focus:bg-white/15 focus:shadow-[0_0_20px_rgba(75,48,251,0.3)] ml-auto"
               />
             </div>
 

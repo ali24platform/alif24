@@ -14,3 +14,4 @@ coverage/
 venv_new/
 .python_packages/
 .vercel/
+backend/bot.log

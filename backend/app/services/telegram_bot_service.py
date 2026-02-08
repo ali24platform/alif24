@@ -91,16 +91,27 @@ class TelegramBotService:
             }
             t = messages.get(lang, messages["uz"])
             
-            # Find Telegram user by phone
+            # Normalize phone (remove + if exists)
+            clean_phone = phone.replace("+", "").strip()
+            
+            # Try formats: +998... and 998...
+            params = [f"+{clean_phone}", clean_phone]
+            
+            logger.info(f"Searching for Telegram user with phone variants: {params}")
+            
+            # Find Telegram user by phone (try both formats)
             tg_user = self.db.query(TelegramUser).filter(
-                TelegramUser.phone == phone
+                TelegramUser.phone.in_(params)
             ).first()
             
             if not tg_user:
+                logger.warning(f"Telegram user not found for phone variants: {params}")
                 return {
                     "success": False,
                     "message": t["not_linked"]
                 }
+                
+            logger.info(f"Found Telegram user: {tg_user.id} (Chat ID: {tg_user.telegram_chat_id})")
             
             # Create verification code
             verification = PhoneVerification.create_for_phone(phone, expires_minutes=5)

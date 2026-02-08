@@ -29,12 +29,15 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
     e.preventDefault();
 
     try {
-      const submitData = {
-        password: formData.password,
-        [loginType]: formData[loginType]
-      };
+      const identifier = loginType === 'email' ? formData.email : formData.phone;
+      const password = formData.password;
 
-      const response = await login(submitData.email || submitData.phone, submitData.password);
+      if (!identifier || !password) {
+        // Should be handled by HTML required, but just in case
+        return;
+      }
+
+      const response = await login(identifier, password);
       onClose();
 
       // Redirect based on role
@@ -61,6 +64,7 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
           navigate('/dashboard');
       }
     } catch (err) {
+      console.error("Login submit error:", err);
       // Error is handled by AuthContext
     }
   };

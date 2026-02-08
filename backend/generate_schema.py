@@ -18,7 +18,32 @@ def dump_schema():
         # We will iterate through sorted tables
         
         sorted_tables = Base.metadata.sorted_tables
+
+        # 1. Collect and Create Enums first
+        from sqlalchemy import Enum
         
+        processed_enums = set()
+        
+        for table in sorted_tables:
+            for column in table.columns:
+                if isinstance(column.type, Enum):
+                    # Dedup by name
+                    enum_name = column.type.name
+                    if not enum_name or enum_name in processed_enums:
+                        continue
+                        
+                    processed_enums.add(enum_name)
+                    try:
+                        # Manual SQL generation
+                        # column.type.enums is a list of strings
+                        if hasattr(column.type, 'enums'):
+                            values = ", ".join([f"'{v}'" for v in column.type.enums])
+                            create_type_sql = f"CREATE TYPE {enum_name} AS ENUM ({values})"
+                            f.write(f"{create_type_sql};\n\n")
+                    except Exception as e:
+                        print(f"Warning compiling enum {enum_name}: {e}")
+
+        # 2. Create Tables
         for table in sorted_tables:
             create_sql = CreateTable(table).compile(engine)
             f.write(f"{create_sql};\n\n")

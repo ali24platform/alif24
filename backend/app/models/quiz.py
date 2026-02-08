@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey, JSON
 from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from datetime import datetime
 import uuid
 from app.core.database import Base
@@ -7,7 +8,7 @@ from app.core.database import Base
 class QuizQuestion(Base):
     __tablename__ = "quiz_questions"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     question_text = Column(String, nullable=False)
     options = Column(JSON, nullable=False)  # List of strings ["Option A", "Option B", ...]
     correct_option_index = Column(Integer, nullable=False)  # 0, 1, 2...
@@ -22,9 +23,9 @@ class QuizQuestion(Base):
 class QuizAttempt(Base):
     __tablename__ = "quiz_attempts"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String, ForeignKey("users.id"), nullable=False)
-    question_id = Column(String, ForeignKey("quiz_questions.id"), nullable=False)
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    question_id = Column(PG_UUID(as_uuid=True), ForeignKey("quiz_questions.id"), nullable=False)
     chosen_option_index = Column(Integer, nullable=False)
     is_correct = Column(Boolean, nullable=False)
     coins_earned = Column(Integer, default=0)

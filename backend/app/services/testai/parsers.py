@@ -4,12 +4,23 @@ try:
     import pdfplumber
 except ImportError:
     pdfplumber = None
-from docx import Document
+
+try:
+    from docx import Document
+except ImportError:
+    Document = None
+
 try:
     import pytesseract
 except ImportError:
     pytesseract = None
-from PIL import Image
+
+try:
+    from PIL import Image, ImageEnhance
+except ImportError:
+    Image = None
+    ImageEnhance = None
+
 import io
 
 def parse_special_format(text: str) -> List[Dict]:
@@ -385,16 +396,21 @@ def parse_pdf(pdf_content: bytes) -> List[Dict]:
 
 def parse_word(docx_content: bytes) -> List[Dict]:
     """Word fayldan testlarni ajratib olish"""
+    if Document is None:
+        print("WARNING: python-docx not installed, skipping DOCX parsing")
+        return []
+        
     doc = Document(io.BytesIO(docx_content))
     text = "\n".join([para.text for para in doc.paragraphs])
     return parse_tests(text)
 
 def parse_image(image_content: bytes) -> List[Dict]:
     """Rasmdan OCR orqali matn o'qish"""
-    image = Image.open(io.BytesIO(image_content))
-    if pytesseract is None:
-        print("WARNING: pytesseract not installed, skipping OCR")
+    if Image is None or pytesseract is None:
+        print("WARNING: Pillow or pytesseract not installed, skipping OCR")
         return []
+        
+    image = Image.open(io.BytesIO(image_content))
     text = pytesseract.image_to_string(image, lang='eng+rus+uzb')
     return parse_tests(text)
 
@@ -409,9 +425,9 @@ def parse_image_tests(image_content: bytes) -> List[Dict]:
         
         # Rasmni qayta ishlash
         image = image.convert('L')  # Grayscale
-        from PIL import ImageEnhance
-        enhancer = ImageEnhance.Contrast(image)
-        image = enhancer.enhance(2.0)
+        if ImageEnhance:
+            enhancer = ImageEnhance.Contrast(image)
+            image = enhancer.enhance(2.0)
         
         # OCR bilan matn olish
         if pytesseract is None:

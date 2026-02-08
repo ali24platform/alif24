@@ -73,11 +73,16 @@ async def send_verification_code(
     """
     import re
     
-    # Valid Uzbek mobile operator prefixes
-    VALID_PREFIXES = ('90', '91', '93', '94', '95', '97', '98', '99', '33', '55', '77', '88')
+    # Valid Uzbek mobile operator prefixes (Updated)
+    VALID_PREFIXES = ('90', '91', '93', '94', '95', '97', '98', '99', '33', '55', '77', '88', '50', '20', '71', '70')
     
     # Validate phone format
     phone = re.sub(r'\s+', '', request.phone)
+    
+    # Auto-add + if missing but starts with 998
+    if re.match(r'^998\d{9}$', phone):
+        phone = "+" + phone
+
     if not re.match(r'^\+998\d{9}$', phone):
         raise HTTPException(
             status_code=400,
@@ -114,11 +119,16 @@ async def verify_code(
     """
     import re
     
-    # Valid Uzbek mobile operator prefixes
-    VALID_PREFIXES = ('90', '91', '93', '94', '95', '97', '98', '99', '33', '55', '77', '88')
+    # Valid Uzbek mobile operator prefixes (Updated)
+    VALID_PREFIXES = ('90', '91', '93', '94', '95', '97', '98', '99', '33', '55', '77', '88', '50', '20', '71', '70')
     
     # Validate phone format
     phone = re.sub(r'\s+', '', request.phone)
+    
+    # Auto-add + if missing but starts with 998
+    if re.match(r'^998\d{9}$', phone):
+        phone = "+" + phone
+
     if not re.match(r'^\+998\d{9}$', phone):
         raise HTTPException(
             status_code=400,

@@ -11,3 +11,6 @@ backend/alif24.db
 coverage/
 .idea/
 .vscode/
+venv_new/
+.python_packages/
+.vercel/

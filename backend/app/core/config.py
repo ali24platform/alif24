@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "info"  # Production: faqat ERROR va yuqori
     
     # CORS
-    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
+    CORS_ORIGINS: str = "*"
     CORS_ORIGIN: str = "*"
     
     # Rate Limiting

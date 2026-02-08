@@ -1,0 +1,218 @@
+INFO:     Started server process [20284]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:5000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51020 - "GET / HTTP/1.1" 200 OK
+2026-02-02 21:46:54 [INFO]: New user registered: new_teacher@alif24.uz with role teacher
+INFO:     127.0.0.1:51034 - "POST /api/v1/auth/register HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51143 - "OPTIONS /api/v1/auth/register HTTP/1.1" 200 OK
+2026-02-02 21:50:35 [INFO]: New user registered: testuser123@alif24.uz with role teacher
+INFO:     127.0.0.1:51143 - "POST /api/v1/auth/register HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51247 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51247 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51327 - "OPTIONS /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51328 - "OPTIONS /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51327 - "GET /api/v1/auth/me HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 1815, in _execute_context
+    context = constructor(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/default.py", line 1494, in _init_compiled
+    l_param: List[Any] = [
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/default.py", line 1496, in <listcomp>
+    flattened_processors[key](compiled_params[key])
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/sql/sqltypes.py", line 3734, in process
+    value = value.hex
+AttributeError: 'str' object has no attribute 'hex'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/uvicorn/protocols/http/httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/applications.py", line 1135, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/routing.py", line 115, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/routing.py", line 101, in app
+    response = await f(request)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/routing.py", line 355, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/routing.py", line 243, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/app/api/v1/auth.py", line 132, in get_profile
+    profile = await service.get_profile(str(current_user.id))
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/app/services/auth_service.py", line 186, in get_profile
+    user = self.user_repo.find_by_id(user_id)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/app/repositories/base_repository.py", line 33, in find_by_id
+    return self.db.query(self.model).filter(self.model.id == id).first()
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/orm/query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 1821, in _execute_context
+    self._handle_dbapi_exception(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 1815, in _execute_context
+    context = constructor(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/default.py", line 1494, in _init_compiled
+    l_param: List[Any] = [
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/default.py", line 1496, in <listcomp>
+    flattened_processors[key](compiled_params[key])
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/sql/sqltypes.py", line 3734, in process
+    value = value.hex
+sqlalchemy.exc.StatementError: (builtins.AttributeError) 'str' object has no attribute 'hex'
+[SQL: SELECT users.id AS users_id, users.email AS users_email, users.phone AS users_phone, users.password_hash AS users_password_hash, users.username AS users_username, users.pin_code AS users_pin_code, users.parent_id AS users_parent_id, users.first_name AS users_first_name, users.last_name AS users_last_name, users.avatar AS users_avatar, users.date_of_birth AS users_date_of_birth, users.role AS users_role, users.status AS users_status, users.language AS users_language, users.timezone AS users_timezone, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at, users.deleted_at AS users_deleted_at 
+FROM users 
+WHERE users.id = ?
+ LIMIT ? OFFSET ?]
+[parameters: [{}]]
+INFO:     127.0.0.1:51328 - "GET /api/v1/auth/me HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 1815, in _execute_context
+    context = constructor(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/default.py", line 1494, in _init_compiled
+    l_param: List[Any] = [
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/default.py", line 1496, in <listcomp>
+    flattened_processors[key](compiled_params[key])
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/sql/sqltypes.py", line 3734, in process
+    value = value.hex
+AttributeError: 'str' object has no attribute 'hex'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/uvicorn/protocols/http/httptools_impl.py", line 415, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/applications.py", line 1135, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/routing.py", line 115, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/routing.py", line 101, in app
+    response = await f(request)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/routing.py", line 355, in app
+    raw_response = await run_endpoint_function(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/fastapi/routing.py", line 243, in run_endpoint_function
+    return await dependant.call(**values)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/app/api/v1/auth.py", line 132, in get_profile
+    profile = await service.get_profile(str(current_user.id))
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/app/services/auth_service.py", line 186, in get_profile
+    user = self.user_repo.find_by_id(user_id)
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/app/repositories/base_repository.py", line 33, in find_by_id
+    return self.db.query(self.model).filter(self.model.id == id).first()
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/orm/query.py", line 2759, in first
+    return self.limit(1)._iter().first()  # type: ignore
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/orm/session.py", line 2351, in execute
+    return self._execute_internal(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/orm/session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 1821, in _execute_context
+    self._handle_dbapi_exception(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/base.py", line 1815, in _execute_context
+    context = constructor(
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/default.py", line 1494, in _init_compiled
+    l_param: List[Any] = [
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/engine/default.py", line 1496, in <listcomp>
+    flattened_processors[key](compiled_params[key])
+  File "/Users/hazratqul/Documents/launchlab/alif24-platform_ready1/backend/venv/lib/python3.9/site-packages/sqlalchemy/sql/sqltypes.py", line 3734, in process
+    value = value.hex
+sqlalchemy.exc.StatementError: (builtins.AttributeError) 'str' object has no attribute 'hex'
+[SQL: SELECT users.id AS users_id, users.email AS users_email, users.phone AS users_phone, users.password_hash AS users_password_hash, users.username AS users_username, users.pin_code AS users_pin_code, users.parent_id AS users_parent_id, users.first_name AS users_first_name, users.last_name AS users_last_name, users.avatar AS users_avatar, users.date_of_birth AS users_date_of_birth, users.role AS users_role, users.status AS users_status, users.language AS users_language, users.timezone AS users_timezone, users.last_login_at AS users_last_login_at, users.created_at AS users_created_at, users.updated_at AS users_updated_at, users.deleted_at AS users_deleted_at 
+FROM users 
+WHERE users.id = ?
+ LIMIT ? OFFSET ?]
+[parameters: [{}]]
+INFO:     127.0.0.1:51364 - "OPTIONS /api/v1/auth/register HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51364 - "POST /api/v1/auth/register HTTP/1.1" 409 Conflict
+INFO:     127.0.0.1:51373 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51379 - "GET / HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [20284]

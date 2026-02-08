@@ -6,11 +6,11 @@ import { useAuth } from '../../context/AuthContext';
 
 const API_BASE = import.meta.env.VITE_API_URL 
   ? import.meta.env.VITE_API_URL.replace('/v1', '/smartkids') 
-  : "https://alif24.uz/api/smartkids";
+  : "https://alif-24.vercel.app/api/v1/smartkids";
 
 const STORY_API_BASE = import.meta.env.VITE_API_URL 
   ? import.meta.env.VITE_API_URL.replace('/v1', '/story') 
-  : "https://alif24.uz/api/story";
+  : "https://alif-24.vercel.app/api/v1/story";
 
 export default function StoryReader({ storyText, age = 7 }) {
   const { user: authUser } = useAuth();
@@ -171,7 +171,7 @@ export default function StoryReader({ storyText, age = 7 }) {
           // Backend'dan token olish
           const apiBase = import.meta.env.VITE_API_URL 
             ? import.meta.env.VITE_API_URL.replace('/v1', '/smartkids') 
-            : "https://alif24.uz/api/smartkids";
+            : "https://alif-24.vercel.app/api/v1/smartkids";
             
           const response = await fetch(`${apiBase}/speech-token`);
           

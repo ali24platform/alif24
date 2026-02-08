@@ -18,7 +18,7 @@ export default function SmartReaderTTS() {
   const API_BASE_URL = import.meta.env.VITE_SMART_API_URL || 
     (import.meta.env.VITE_API_URL 
       ? import.meta.env.VITE_API_URL.replace('/v1', '/smartkids')
-      : "https://alif24.uz/api/smartkids");
+      : "https://alif-24.vercel.app/api/v1/smartkids");
   
   useEffect(() => {
     if (showCamera && stream && videoRef.current) {

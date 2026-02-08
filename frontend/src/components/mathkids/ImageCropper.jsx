@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 const API_BASE_URL = import.meta.env.VITE_MATH_API_URL || 
   (import.meta.env.VITE_API_URL 
     ? import.meta.env.VITE_API_URL.replace('/v1', '/mathkids')
-    : "https://alif24.uz/api/mathkids");
+    : "https://alif-24.vercel.app/api/v1/mathkids");
 
 function ImageCropper({ onTextExtracted }) {
   const [imageSrc, setImageSrc] = useState(null);

@@ -25,11 +25,11 @@ export default function MathSolver() {
   const textareaRef = useRef(null);
 const API_BASE_URL = import.meta.env.VITE_MATH_API_URL 
   ? import.meta.env.VITE_MATH_API_URL
-  : "https://alif24.uz/api/mathkids";
+  : "https://alif-24.vercel.app/api/v1/mathkids";
 
 const SPEECH_TOKEN_URL = import.meta.env.VITE_API_URL 
   ? import.meta.env.VITE_API_URL.replace('/v1', '/smartkids/speech-token') 
-  : "https://alif24.uz/api/smartkids/speech-token";
+  : "https://alif-24.vercel.app/api/v1/smartkids/speech-token";
 
   
 

@@ -2,21 +2,28 @@ import React, { useState, useEffect } from 'react';
 import {
     Users, TrendingUp, BookOpen, Activity,
     Search, Filter, RefreshCw, Eye, Lock,
-    FileText, Calendar, Plus, Trash2, Upload, MessageSquare
+    FileText, Calendar, Plus, Trash2, Upload, MessageSquare, Phone, Mail
 } from 'lucide-react';
+import {
+    PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+    BarChart, Bar, XAxis, YAxis, CartesianGrid
+} from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import organizationService from '../services/organizationService';
 import crmService from '../services/crmService';
 import CRMBoard from '../components/crm/CRMBoard';
+import { formatDate } from '../utils/formatDate';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const OrganizationDashboard = () => {
     const { user, logout } = useAuth();
     const [stats, setStats] = useState(null);
+    const [error, setError] = useState(null);
     const [usersList, setUsersList] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [materials, setMaterials] = useState([]);
-    const [analyses, setAnalyses] = useState([]);
-    const [leads, setLeads] = useState([]); // CRM Leads
+    const [leads, setLeads] = useState([]);
 
     const [activeTab, setActiveTab] = useState('stats');
     const [loading, setLoading] = useState(false);
@@ -37,6 +44,7 @@ const OrganizationDashboard = () => {
     // Load Data
     const loadData = async () => {
         setLoading(true);
+        setError(null);
         try {
             const [statsData, teachersData, materialsData, usersData, leadsData] = await Promise.all([
                 organizationService.getStats().catch(err => null),
@@ -52,12 +60,9 @@ const OrganizationDashboard = () => {
             if (usersData && usersData.users) setUsersList(usersData.users);
             if (leadsData) setLeads(leadsData);
 
-            // Analysis data (mock or fetch if available)
-            // const analysesData = await organizationService.getReadingAnalyses();
-            // setAnalyses(analysesData.analyses || []);
-
         } catch (error) {
             console.error('Load error:', error);
+            setError("Ma'lumotlarni yuklashda xatolik yuz berdi. Iltimos, qayta urinib ko'ring.");
         } finally {
             setLoading(false);
         }
@@ -75,7 +80,7 @@ const OrganizationDashboard = () => {
             setShowInviteStudentModal(false);
             setInviteStudentData({ name: '', phone: '', email: '' });
             loadData();
-            alert("O'quvchi muvaffaqiyatli taklif qilindi. Login ma'lumotlari yuborildi.");
+            alert("O'quvchi muvaffaqiyatli taklif qilindi.");
         } catch (error) {
             alert("Xatolik: " + (error.response?.data?.detail || error.message));
         }
@@ -85,6 +90,9 @@ const OrganizationDashboard = () => {
         try {
             await crmService.updateLead(leadId, { status: newStatus });
             setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
+            // Refresh stats to update charts
+            const newStats = await organizationService.getStats();
+            setStats(newStats);
         } catch (error) {
             console.error("CRM Update failed", error);
             loadData();
@@ -96,6 +104,8 @@ const OrganizationDashboard = () => {
         try {
             await crmService.deleteLead(leadId);
             setLeads(prev => prev.filter(l => l.id !== leadId));
+            const newStats = await organizationService.getStats();
+            setStats(newStats);
         } catch (error) {
             alert("O'chirib bo'lmadi");
         }
@@ -107,7 +117,7 @@ const OrganizationDashboard = () => {
             await organizationService.addTeacher(teacherIdToAdd);
             setShowAddTeacherModal(false);
             setTeacherIdToAdd('');
-            loadData(); // Refresh
+            loadData();
             alert('Teacher added successfully');
         } catch (error) {
             alert('Error adding teacher: ' + (error.response?.data?.detail || error.message));
@@ -161,10 +171,16 @@ const OrganizationDashboard = () => {
         return roles[role] || role;
     };
 
+    // Chart Data Preparation
+    const studentLeadData = stats ? [
+        { name: 'O\'quvchilar', count: stats.total_students || 0 },
+        { name: 'Lidlar', count: stats.total_leads || 0 },
+    ] : [];
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <div className="bg-white shadow-sm border-b border-gray-200">
+            <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex justify-between items-center">
                         <div>
@@ -187,16 +203,16 @@ const OrganizationDashboard = () => {
             {/* Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Tabs */}
-                <div className="bg-white rounded-lg shadow-sm mb-6">
+                <div className="bg-white rounded-lg shadow-sm mb-6 sticky top-20 z-20">
                     <div className="border-b border-gray-200">
-                        <nav className="flex gap-8 px-6 overflow-x-auto">
+                        <nav className="flex gap-8 px-6 overflow-x-auto no-scrollbar">
                             {[
                                 { key: 'stats', label: 'Statistika', icon: TrendingUp },
-                                { key: 'crm', label: 'CRM / Lidlar', icon: MessageSquare }, // New CRM Tab
+                                { key: 'crm', label: 'CRM / Lidlar', icon: MessageSquare },
                                 { key: 'teachers', label: 'O‘qituvchilar', icon: Users },
                                 { key: 'materials', label: 'Content Box', icon: BookOpen },
                                 { key: 'schedule', label: 'Dars Jadvali', icon: Calendar },
-                                { key: 'users', label: 'Barcha Foydalanuvchilar', icon: Users },
+                                { key: 'users', label: 'Foydalanuvchilar', icon: Users },
                             ].map(tab => (
                                 <button
                                     key={tab.key}
@@ -215,57 +231,157 @@ const OrganizationDashboard = () => {
                 </div>
 
                 {/* --- STATS TAB --- */}
-                {activeTab === 'stats' && stats && (
-                    <div className="space-y-6">
-                        {/* Users Stats */}
-                        <div className="bg-white rounded-lg shadow-sm p-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6">📊 Umumiy Statistika</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                <StatCard label="Jami Foydalanuvchilar" value={stats.users?.total || 0} icon="👥" color="blue" />
-                                <StatCard label="Faol Lidlar" value={leads.length} icon="📈" color="orange" />
-                                <StatCard label="O'quvchilar" value={stats.users?.students || 0} icon="👨‍🎓" color="green" />
-                                <StatCard label="O'qituvchilar" value={stats.users?.teachers || 0} icon="👨‍🏫" color="purple" />
+                {activeTab === 'stats' && (
+                    <>
+                        {loading && !stats && (
+                            <div className="flex justify-center items-center h-64">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                             </div>
-                        </div>
+                        )}
 
-                        {/* Quick CRM View */}
-                        <div className="bg-white rounded-lg shadow-sm p-6">
-                            <h3 className="text-lg font-bold mb-4">So'nggi Lidlar</h3>
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="text-left text-xs uppercase text-gray-500 bg-gray-50">
-                                            <th className="p-3">Ism</th>
-                                            <th className="p-3">Telefon</th>
-                                            <th className="p-3">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {leads.slice(0, 5).map(lead => (
-                                            <tr key={lead.id} className="border-t">
-                                                <td className="p-3">{lead.first_name} {lead.last_name}</td>
-                                                <td className="p-3">{lead.phone}</td>
-                                                <td className="p-3">
-                                                    <span className={`px-2 py-1 rounded text-xs ${lead.status === 'new' ? 'bg-blue-100 text-blue-800' :
-                                                        lead.status === 'won' ? 'bg-green-100 text-green-800' : 'bg-gray-100'
-                                                        }`}>{lead.status}</span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                        {!loading && !stats && (
+                            <div className="text-center py-12 text-gray-500 bg-white rounded-lg shadow-sm">
+                                <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500">
+                                    <Activity size={32} />
+                                </div>
+                                <h3 className="text-lg font-medium text-gray-900">Statistika ma'lumotlari mavjud emas</h3>
+                                <p className="mb-4">Ma'lumotlarni yuklashda xatolik yuz berdi yoki hali ma'lumot yo'q.</p>
+                                <button
+                                    onClick={loadData}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                    Qayta urinish
+                                </button>
                             </div>
-                        </div>
-                    </div>
+                        )}
+
+                        {stats && (
+                            <div className="space-y-6 animate-fadeIn">
+                                {/* Summary Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    <StatCard label="Jami O'quvchilar" value={stats.total_students} icon={<Users />} color="blue" />
+                                    <StatCard label="Jami Lidlar" value={stats.total_leads} icon={<TrendingUp />} color="orange" />
+                                    <StatCard label="O'qituvchilar" value={stats.total_teachers} icon={<BookOpen />} color="purple" />
+                                    <StatCard label="Faollik" value="Yuqori" icon={<Activity />} color="green" />
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {/* Distribution Chart */}
+                                    <div className="bg-white p-6 rounded-lg shadow-sm">
+                                        <h3 className="text-lg font-bold mb-4">Lidlar Statusi Bo'yicha</h3>
+                                        <div className="h-64 w-full">
+                                            {stats.leads_by_status && stats.leads_by_status.length > 0 ? (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={stats.leads_by_status}
+                                                            cx="50%"
+                                                            cy="50%"
+                                                            labelLine={false}
+                                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                                            outerRadius={80}
+                                                            fill="#8884d8"
+                                                            dataKey="value"
+                                                        >
+                                                            {stats.leads_by_status.map((entry, index) => (
+                                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                            ))}
+                                                        </Pie>
+                                                        <RechartsTooltip />
+                                                        <Legend />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            ) : (
+                                                <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                                                    <div className="bg-gray-50 p-3 rounded-full mb-2">
+                                                        <TrendingUp size={24} />
+                                                    </div>
+                                                    <p>Ma'lumot yo'q</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Comparison Chart */}
+                                    <div className="bg-white p-6 rounded-lg shadow-sm">
+                                        <h3 className="text-lg font-bold mb-4">O'quvchilar va Lidlar</h3>
+                                        <div className="h-64 w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={studentLeadData}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="name" />
+                                                    <YAxis allowDecimals={false} />
+                                                    <RechartsTooltip />
+                                                    <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Recent Activities */}
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="p-6 border-b border-gray-100">
+                                        <h3 className="text-lg font-bold">So'nggi Faoliyatlar</h3>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lid</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faoliyat</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Xulosa</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vaqt</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {stats.recent_activities && stats.recent_activities.length > 0 ? (
+                                                    stats.recent_activities.map((activity) => (
+                                                        <tr key={activity.id} className="hover:bg-gray-50">
+                                                            <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                                                {activity.lead_name}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                                <span className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs uppercase font-bold">
+                                                                    {activity.type}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-sm text-gray-600">
+                                                                {activity.summary}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                {formatDate(activity.created_at)}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                                                            <div className="flex flex-col items-center justify-center">
+                                                                <div className="bg-gray-50 p-3 rounded-full mb-2">
+                                                                    <Activity size={24} />
+                                                                </div>
+                                                                <p>Hozircha faoliyatlar yo'q</p>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {/* --- CRM TAB --- */}
                 {activeTab === 'crm' && (
-                    <div className="h-[calc(100vh-200px)]">
+                    <div className="h-[calc(100vh-250px)] animate-fadeIn">
                         <CRMBoard
                             leads={leads}
                             onStatusChange={handleCRMStatusChange}
-                            onEdit={(lead) => console.log("Edit lead", lead)} // TODO: Implement full edit
+                            onEdit={(lead) => console.log("Edit lead", lead)}
                             onDelete={handleCRMDelete}
                         />
                     </div>
@@ -273,12 +389,12 @@ const OrganizationDashboard = () => {
 
                 {/* --- TEACHERS TAB --- */}
                 {activeTab === 'teachers' && (
-                    <div className="bg-white rounded-lg shadow-sm p-6">
+                    <div className="bg-white rounded-lg shadow-sm p-6 animate-fadeIn">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-gray-900">Mening O'qituvchilarim</h2>
                             <button
                                 onClick={() => setShowAddTeacherModal(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                             >
                                 <Plus size={18} /> O'qituvchi Qo'shish
                             </button>
@@ -296,7 +412,7 @@ const OrganizationDashboard = () => {
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {teachers.map(teacher => (
-                                        <tr key={teacher.id}>
+                                        <tr key={teacher.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-gray-900">
                                                     {teacher.user?.first_name} {teacher.user?.last_name}
@@ -307,14 +423,16 @@ const OrganizationDashboard = () => {
                                                 {teacher.qualification || '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                                                <span className={`px-2 py-1 text-xs rounded-full ${teacher.verification_status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                    teacher.verification_status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                                    }`}>
                                                     {teacher.verification_status}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <button
                                                     onClick={() => handleRemoveTeacher(teacher.id)}
-                                                    className="text-red-600 hover:text-red-900"
+                                                    className="text-red-600 hover:text-red-900 transition"
                                                 >
                                                     <Trash2 size={18} />
                                                 </button>
@@ -332,12 +450,12 @@ const OrganizationDashboard = () => {
 
                 {/* --- MATERIALS TAB --- */}
                 {activeTab === 'materials' && (
-                    <div className="bg-white rounded-lg shadow-sm p-6">
+                    <div className="bg-white rounded-lg shadow-sm p-6 animate-fadeIn">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-xl font-bold text-gray-900">Content Box</h2>
                             <button
                                 onClick={() => setShowUploadModal(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                             >
                                 <Upload size={18} /> Material Yuklash
                             </button>
@@ -345,7 +463,7 @@ const OrganizationDashboard = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             {materials.map(material => (
-                                <div key={material.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                <div key={material.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all bg-white hover:-translate-y-1">
                                     <div className="flex items-start justify-between mb-2">
                                         <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
                                             <FileText size={24} />
@@ -360,7 +478,7 @@ const OrganizationDashboard = () => {
                                         href={material.file_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium"
                                     >
                                         <Eye size={14} /> Ko'rish
                                     </a>
@@ -375,13 +493,15 @@ const OrganizationDashboard = () => {
 
                 {/* --- SCHEDULE TAB --- */}
                 {activeTab === 'schedule' && (
-                    <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+                    <div className="bg-white rounded-lg shadow-sm p-6 text-center animate-fadeIn">
                         <div className="flex flex-col items-center justify-center py-12">
-                            <Calendar size={64} className="text-gray-300 mb-4" />
+                            <div className="bg-blue-50 p-4 rounded-full mb-4">
+                                <Calendar size={48} className="text-blue-500" />
+                            </div>
                             <h3 className="text-lg font-medium text-gray-900">Dars Jadvali</h3>
-                            <p className="text-gray-500 mb-6">Sinf xonalari bo'yicha dars jadvallarini boshqarish.</p>
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                                Jadval Yaratish (Tez orada)
+                            <p className="text-gray-500 mb-6 max-w-sm">Sinf xonalari bo'yicha dars jadvallarini boshqarish. Bu funksiya tez orada ishga tushadi.</p>
+                            <button className="px-6 py-2 bg-gray-100 text-gray-600 rounded-lg cursor-not-allowed" disabled>
+                                Tez orada
                             </button>
                         </div>
                     </div>
@@ -389,13 +509,13 @@ const OrganizationDashboard = () => {
 
                 {/* --- USERS TAB --- */}
                 {activeTab === 'users' && (
-                    <div className="bg-white rounded-lg shadow-sm">
+                    <div className="bg-white rounded-lg shadow-sm animate-fadeIn">
                         <div className="p-6 border-b border-gray-200">
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-lg font-bold">Foydalanuvchilar</h2>
                                 <button
                                     onClick={() => setShowInviteStudentModal(true)}
-                                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
+                                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 transition"
                                 >
                                     <Plus size={18} /> O'quvchi Taklif Qilish
                                 </button>
@@ -405,21 +525,20 @@ const OrganizationDashboard = () => {
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                                     <input
                                         type="text"
-                                        placeholder="Qidirish..."
+                                        placeholder="Qidirish (ism, email)..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                                     />
                                 </div>
                                 <select
                                     value={roleFilter}
                                     onChange={(e) => setRoleFilter(e.target.value)}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                                 >
                                     <option value="">Barcha rollar</option>
                                     <option value="student">O'quvchilar</option>
                                     <option value="teacher">O'qituvchilar</option>
-                                    <option value="parent">Ota-onalar</option>
                                 </select>
                             </div>
                         </div>
@@ -428,18 +547,22 @@ const OrganizationDashboard = () => {
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ism</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aloqa</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Holat</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {filteredUsers.map(u => (
-                                        <tr key={u.id}>
+                                        <tr key={u.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
                                                 {u.name || (u.first_name + ' ' + u.last_name)}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-gray-500">{u.email}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <div className="flex flex-col">
+                                                    <span className="flex items-center gap-1"><Mail size={12} /> {u.email}</span>
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 text-xs rounded-full ${u.role === 'student' ? 'bg-blue-100 text-blue-800' :
                                                     u.role === 'teacher' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100'
@@ -454,6 +577,11 @@ const OrganizationDashboard = () => {
                                             </td>
                                         </tr>
                                     ))}
+                                    {filteredUsers.length === 0 && (
+                                        <tr>
+                                            <td colSpan="4" className="text-center py-8 text-gray-500">Hech narsa topilmadi</td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -462,8 +590,8 @@ const OrganizationDashboard = () => {
 
                 {/* --- MODALS --- */}
                 {showAddTeacherModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fadeIn">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
                             <h3 className="text-lg font-bold mb-4">O'qituvchi Qo'shish</h3>
                             <form onSubmit={handleAddTeacher}>
                                 <div className="mb-4">
@@ -472,25 +600,25 @@ const OrganizationDashboard = () => {
                                         type="text"
                                         value={teacherIdToAdd}
                                         onChange={e => setTeacherIdToAdd(e.target.value)}
-                                        className="w-full border rounded p-2"
+                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none transition"
                                         required
-                                        placeholder="UUID..."
+                                        placeholder="UUID kiriting..."
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        * Kelajakda qidiruv tizimi qo'shiladi
+                                        * O'qituvchi tizimda ro'yxatdan o'tgan bo'lishi kerak
                                     </p>
                                 </div>
                                 <div className="flex justify-end gap-2">
                                     <button
                                         type="button"
                                         onClick={() => setShowAddTeacherModal(false)}
-                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition"
                                     >
                                         Bekor qilish
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                                     >
                                         Qo'shish
                                     </button>
@@ -501,8 +629,8 @@ const OrganizationDashboard = () => {
                 )}
 
                 {showUploadModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fadeIn">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
                             <h3 className="text-lg font-bold mb-4">Material Yuklash</h3>
                             <form onSubmit={handleUploadMaterial}>
                                 <div className="mb-4">
@@ -511,8 +639,9 @@ const OrganizationDashboard = () => {
                                         type="text"
                                         value={uploadTitle}
                                         onChange={e => setUploadTitle(e.target.value)}
-                                        className="w-full border rounded p-2"
+                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                                         required
+                                        placeholder="Masalan: 5-sinf darsligi"
                                     />
                                 </div>
                                 <div className="mb-4">
@@ -521,7 +650,7 @@ const OrganizationDashboard = () => {
                                         type="text"
                                         value={uploadFileUrl}
                                         onChange={e => setUploadFileUrl(e.target.value)}
-                                        className="w-full border rounded p-2"
+                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                                         required
                                         placeholder="https://..."
                                     />
@@ -530,13 +659,13 @@ const OrganizationDashboard = () => {
                                     <button
                                         type="button"
                                         onClick={() => setShowUploadModal(false)}
-                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition"
                                     >
                                         Bekor qilish
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                                     >
                                         Yuklash
                                     </button>
@@ -548,8 +677,8 @@ const OrganizationDashboard = () => {
 
                 {/* Invite Student Modal */}
                 {showInviteStudentModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fadeIn">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
                             <h3 className="text-lg font-bold mb-4">O'quvchi Taklif Qilish</h3>
                             <p className="text-sm text-gray-500 mb-4">
                                 O'quvchi ma'lumotlarini kiriting. Tizim avtomatik ravishda login va parolni SMS/Email orqali yuboradi.
@@ -561,29 +690,29 @@ const OrganizationDashboard = () => {
                                         type="text"
                                         value={inviteStudentData.name}
                                         onChange={e => setInviteStudentData({ ...inviteStudentData, name: e.target.value })}
-                                        className="w-full border rounded p-2"
+                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                                         required
                                         placeholder="Ali Valiyev"
                                     />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium mb-1">Telefon Raqami (Login bo'ladi)</label>
+                                    <label className="block text-sm font-medium mb-1">Telefon Raqami</label>
                                     <input
                                         type="tel"
                                         value={inviteStudentData.phone}
                                         onChange={e => setInviteStudentData({ ...inviteStudentData, phone: e.target.value })}
-                                        className="w-full border rounded p-2"
+                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                                         required
                                         placeholder="+998901234567"
                                     />
                                 </div>
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium mb-1">Email (Ixtiyoriy)</label>
+                                    <label className="block text-sm font-medium mb-1">Email <span className="text-gray-400 font-normal">(Ixtiyoriy)</span></label>
                                     <input
                                         type="email"
                                         value={inviteStudentData.email}
                                         onChange={e => setInviteStudentData({ ...inviteStudentData, email: e.target.value })}
-                                        className="w-full border rounded p-2"
+                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
                                         placeholder="student@example.com"
                                     />
                                 </div>
@@ -591,13 +720,13 @@ const OrganizationDashboard = () => {
                                     <button
                                         type="button"
                                         onClick={() => setShowInviteStudentModal(false)}
-                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition"
                                     >
                                         Bekor qilish
                                     </button>
                                     <button
                                         type="submit"
-                                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
                                     >
                                         Taklif Qilish
                                     </button>
@@ -612,7 +741,7 @@ const OrganizationDashboard = () => {
 };
 
 const StatCard = ({ label, value, icon, color }) => {
-    const colors = {
+    const colorClasses = {
         blue: 'bg-blue-50 text-blue-600',
         green: 'bg-green-50 text-green-600',
         purple: 'bg-purple-50 text-purple-600',
@@ -620,8 +749,11 @@ const StatCard = ({ label, value, icon, color }) => {
     };
 
     return (
-        <div className={`rounded-xl p-6 ${colors[color] || colors.blue}`}>
-            <div className="text-3xl mb-2">{icon}</div>
+        <div className={`rounded-xl p-6 ${colorClasses[color]} transition-transform hover:-translate-y-1`}>
+            <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-white/50 rounded-lg">{icon}</div>
+                <span className="text-xs font-semibold uppercase tracking-wider opacity-70">Statistika</span>
+            </div>
             <div className="text-3xl font-bold mb-1">{value}</div>
             <div className="text-sm font-medium opacity-80">{label}</div>
         </div>
@@ -629,4 +761,3 @@ const StatCard = ({ label, value, icon, color }) => {
 };
 
 export default OrganizationDashboard;
-

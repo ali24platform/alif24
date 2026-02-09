@@ -54,7 +54,7 @@ router.include_router(unified_router.router, prefix="/unified", tags=["unified"]
 
 # Guest Session Router
 from app.api.guest import router as guest_router
-router.include_router(guest_router.router)
+router.include_router(guest_router)
 
 # Organization Dashboard Router
 from app.organization import router as org_dashboard_router

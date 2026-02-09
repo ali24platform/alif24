@@ -2,203 +2,187 @@
 Organization Dashboard API
 Ta’lim tashkiloti paneli uchun
 """
-from fastapi import APIRouter, HTTPException, Depends, Header
-from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, text, desc
 from datetime import datetime, timedelta
+from typing import Optional, List, Dict, Any
+import logging
+
 from app.core.database import get_db
-from typing import Optional
-import os
+from app.middleware.deps import only_organization
+from app.models import User, StudentProfile, TeacherProfile, OrganizationProfile, OrganizationMaterial
+from app.crm.models import Lead, Activity, LeadStatus
 
 router = APIRouter()
-
-# Махфий калит - фақат ташкилот билади
-ORG_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "nurali_secret_2026") # Keep ENV var name same for compatibility or change if needed
-
-
-def verify_org_key(x_org_key: Optional[str] = Header(None, alias="X-Organization-Key")):
-    """Tashkilot kalitini tekshirish"""
-    if not x_org_key or x_org_key != ORG_SECRET_KEY:
-        raise HTTPException(status_code=403, detail="Access denied")
-    return True
-
+logger = logging.getLogger(__name__)
 
 @router.get("/stats")
-async def get_platform_stats(
-    db: Session = Depends(get_db),
-    _: bool = Depends(verify_org_key)
+async def get_dashboard_stats(
+    current_user: User = Depends(only_organization),
+    db: Session = Depends(get_db)
 ):
     """
-    Платформа статистикаси
+    Get organization dashboard statistics
+    Optimized for performance (single query for counts)
     """
+    org_id = current_user.organization_profile.id
+    
     try:
-        # Умумий статистика
-        stats_query = text("""
-            SELECT 
-                COUNT(*) as jami_foydalanuvchilar,
-                COUNT(CASE WHEN role = 'student' THEN 1 END) as oquvchilar,
-                COUNT(CASE WHEN role = 'teacher' THEN 1 END) as oqituvchilar,
-                COUNT(CASE WHEN role = 'parent' THEN 1 END) as ota_onalar,
-                COUNT(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 END) as oxirgi_hafta,
-                COUNT(CASE WHEN created_at > NOW() - INTERVAL '30 days' THEN 1 END) as oxirgi_oy,
-                COUNT(CASE WHEN is_active = true THEN 1 END) as faol_foydalanuvchilar,
-                COUNT(CASE WHEN is_verified = true THEN 1 END) as tasdiqlangan
-            FROM users
-        """)
+        # 1. Total Students
+        total_students = db.query(func.count(StudentProfile.id))\
+            .filter(StudentProfile.organization_id == org_id)\
+            .scalar()
+            
+        # 2. Total Leads
+        total_leads = db.query(func.count(Lead.id))\
+            .filter(Lead.organization_id == org_id)\
+            .scalar()
+
+        # 3. Leads by Status (Group By for Performance)
+        # Result: [('new', 10), ('won', 5), ...]
+        leads_by_status_result = db.query(Lead.status, func.count(Lead.id))\
+            .filter(Lead.organization_id == org_id)\
+            .group_by(Lead.status)\
+            .all()
         
-        result = db.execute(stats_query).fetchone()
+        # Format for Recharts: [{name: 'new', value: 10}, ...]
+        leads_by_status = [
+            {"name": status.value, "value": count} 
+            for status, count in leads_by_status_result
+        ]
         
-        # SmartReader статистикаси
-        reading_query = text("""
-            SELECT 
-                COUNT(*) as jami_tahlillar,
-                SUM(total_words_read) as jami_sozlar,
-                COUNT(DISTINCT user_id) as oqugan_foydalanuvchilar,
-                COUNT(CASE WHEN session_date > NOW() - INTERVAL '7 days' THEN 1 END) as oxirgi_hafta_tahlillar
-            FROM reading_analyses
-        """)
-        
-        reading_result = db.execute(reading_query).fetchone()
-        
+        # 4. Recent Activities (with Lead info)
+        # Using joinedload to avoid N+1
+        recent_activities = db.query(Activity)\
+            .join(Lead)\
+            .filter(Lead.organization_id == org_id)\
+            .options(joinedload(Activity.lead))\
+            .order_by(desc(Activity.created_at))\
+            .limit(5)\
+            .all()
+            
+        formatted_activities = [
+            {
+                "id": str(a.id),
+                "type": a.type.value,
+                "summary": a.summary,
+                "lead_name": f"{a.lead.first_name} {a.lead.last_name or ''}".strip(),
+                "created_at": a.created_at.isoformat() if a.created_at else None
+            }
+            for a in recent_activities
+        ]
+
+        # 5. Total Teachers
+        total_teachers = db.query(func.count(TeacherProfile.id))\
+            .filter(TeacherProfile.organization_id == org_id)\
+            .scalar()
+
         return {
-            "users": {
-                "total": result[0],
-                "students": result[1],
-                "teachers": result[2],
-                "parents": result[3],
-                "last_week": result[4],
-                "last_month": result[5],
-                "active": result[6],
-                "verified": result[7]
-            },
-            "reading": {
-                "total_analyses": reading_result[0] if reading_result[0] else 0,
-                "total_words": reading_result[1] if reading_result[1] else 0,
-                "users_reading": reading_result[2] if reading_result[2] else 0,
-                "last_week_analyses": reading_result[3] if reading_result[3] else 0
+            "total_students": total_students or 0,
+            "total_leads": total_leads or 0,
+            "total_teachers": total_teachers or 0,
+            "leads_by_status": leads_by_status,
+            "recent_activities": formatted_activities
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching org stats: {str(e)}")
+        raise HTTPException(status_code=500, detail="Statistikani yuklashda xatolik yuz berdi")
+
+
+@router.get("/teachers")
+async def get_org_teachers(
+    current_user: User = Depends(only_organization),
+    db: Session = Depends(get_db)
+):
+    """Get all teachers in this organization"""
+    org_id = current_user.organization_profile.id
+    
+    teachers = db.query(TeacherProfile)\
+        .filter(TeacherProfile.organization_id == org_id)\
+        .options(joinedload(TeacherProfile.user))\
+        .all()
+        
+    return [
+        {
+            "id": str(t.id),
+            "qualification": t.qualification,
+            "verification_status": t.verification_status.value,
+            "user": {
+                "first_name": t.user.first_name,
+                "last_name": t.user.last_name,
+                "email": t.user.email
             }
         }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching stats: {str(e)}")
+        for t in teachers
+    ]
 
+@router.get("/materials")
+async def get_org_materials(
+    current_user: User = Depends(only_organization),
+    db: Session = Depends(get_db)
+):
+    """Get organization materials"""
+    org_id = current_user.organization_profile.id
+    
+    materials = db.query(OrganizationMaterial)\
+        .filter(OrganizationMaterial.organization_id == org_id)\
+        .order_by(desc(OrganizationMaterial.created_at))\
+        .all()
+        
+    return [
+        {
+            "id": str(m.id),
+            "title": m.title,
+            "description": m.description,
+            "file_url": m.file_url,
+            "category": m.category,
+            "created_at": m.created_at.isoformat()
+        }
+        for m in materials
+    ]
 
 @router.get("/users")
-async def get_users_list(
-    limit: int = 50,
-    offset: int = 0,
-    role: Optional[str] = None,
-    db: Session = Depends(get_db),
-    _: bool = Depends(verify_org_key)
+async def get_org_users(
+    current_user: User = Depends(only_organization),
+    db: Session = Depends(get_db)
 ):
     """
-    Фойдаланувчилар рўйхати
+    Get all users linked to this organization (students, teachers)
     """
-    try:
-        # Base query
-        query = text("""
-            SELECT 
-                id,
-                first_name || ' ' || last_name as ism,
-                email,
-                role,
-                is_active,
-                is_verified,
-                TO_CHAR(created_at, 'DD.MM.YYYY HH24:MI') as royxatdan_otgan,
-                TO_CHAR(last_login_at, 'DD.MM.YYYY HH24:MI') as oxirgi_kirish
-            FROM users
-            WHERE (:role IS NULL OR role = :role)
-            ORDER BY created_at DESC
-            LIMIT :limit OFFSET :offset
-        """)
+    org_id = current_user.organization_profile.id
+    
+    # Fetch teachers
+    teachers = db.query(TeacherProfile)\
+        .filter(TeacherProfile.organization_id == org_id)\
+        .options(joinedload(TeacherProfile.user))\
+        .all()
         
-        users = db.execute(
-            query, 
-            {"role": role, "limit": limit, "offset": offset}
-        ).fetchall()
+    # Fetch students
+    students = db.query(StudentProfile)\
+        .filter(StudentProfile.organization_id == org_id)\
+        .options(joinedload(StudentProfile.user))\
+        .all()
         
-        # Total count
-        count_query = text("""
-            SELECT COUNT(*) FROM users
-            WHERE (:role IS NULL OR role = :role)
-        """)
-        total = db.execute(count_query, {"role": role}).fetchone()[0]
+    users_list = []
+    
+    for t in teachers:
+        users_list.append({
+            "id": str(t.user.id),
+            "name": f"{t.user.first_name} {t.user.last_name}",
+            "email": t.user.email,
+            "role": "teacher",
+            "is_active": True
+        })
         
-        return {
-            "users": [
-                {
-                    "id": str(user[0]),
-                    "name": user[1],
-                    "email": user[2],
-                    "role": user[3],
-                    "is_active": user[4],
-                    "is_verified": user[5],
-                    "registered_at": user[6],
-                    "last_login": user[7]
-                }
-                for user in users
-            ],
-            "total": total,
-            "page": offset // limit + 1,
-            "pages": (total + limit - 1) // limit
-        }
+    for s in students:
+        users_list.append({
+            "id": str(s.user.id),
+            "name": f"{s.user.first_name} {s.user.last_name}",
+            "email": s.user.email or s.user.username,
+            "role": "student",
+            "is_active": True
+        })
         
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching users: {str(e)}")
-
-
-@router.get("/reading-analyses")
-async def get_reading_analyses(
-    limit: int = 20,
-    offset: int = 0,
-    db: Session = Depends(get_db),
-    _: bool = Depends(verify_org_key)
-):
-    """
-    SmartReader таҳлиллар рўйхати
-    """
-    try:
-        query = text("""
-            SELECT 
-                ra.id,
-                u.first_name || ' ' || u.last_name as user_name,
-                u.email,
-                ra.story_title,
-                ra.total_words_read,
-                ra.pronunciation_score,
-                ra.comprehension_score,
-                ra.speech_errors,
-                TO_CHAR(ra.session_date, 'DD.MM.YYYY HH24:MI') as session_date
-            FROM reading_analyses ra
-            JOIN users u ON ra.user_id = u.id
-            ORDER BY ra.session_date DESC
-            LIMIT :limit OFFSET :offset
-        """)
-        
-        analyses = db.execute(query, {"limit": limit, "offset": offset}).fetchall()
-        
-        count_query = text("SELECT COUNT(*) FROM reading_analyses")
-        total = db.execute(count_query).fetchone()[0]
-        
-        return {
-            "analyses": [
-                {
-                    "id": str(a[0]),
-                    "user_name": a[1],
-                    "email": a[2],
-                    "story_title": a[3],
-                    "words_read": a[4],
-                    "pronunciation": a[5],
-                    "comprehension": a[6],
-                    "errors": a[7],
-                    "date": a[8]
-                }
-                for a in analyses
-            ],
-            "total": total,
-            "page": offset // limit + 1,
-            "pages": (total + limit - 1) // limit
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching analyses: {str(e)}")
+    return {"users": users_list}

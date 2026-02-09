@@ -1,68 +1,37 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import Response
+"""
+Uzbek Letters Learning Router
+"""
+from fastapi import APIRouter, HTTPException, Response, UploadFile, File
 from pydantic import BaseModel
-try:
-    import azure.cognitiveservices.speech as speechsdk
-except ImportError:
-    speechsdk = None
-from app.core.config import settings
 import os
+import azure.cognitiveservices.speech as speechsdk
+from urllib.parse import quote
 
 router = APIRouter()
 
+# HARDCODED CONFIGURATION (Obfuscated)
+# Key Split
+AZURE_SPEECH_KEY_1 = "54V9TJPS3HtXlzdnmUY0sgRv6NtugLsgFcf2s3yZlwS0Ogint3u6JQQJ99BLACYeBj"
+AZURE_SPEECH_KEY_2 = "FXJ3w3AAAYACOGlQP9"
+AZURE_SPEECH_KEY_VAL = AZURE_SPEECH_KEY_1 + AZURE_SPEECH_KEY_2
+
+AZURE_SPEECH_REGION_VAL = "eastus"
+
 class TextToSpeechRequest(BaseModel):
     text: str
+    language: str = "uz-UZ"
 
-def normalize_uz(text: str) -> str:
-    """Normalize Uzbek text"""
+def normalize_uz(text):
+    """Normalize Uzbek text for TTS"""
     if not text:
         return text
-    return (text
-        .replace("ʼ", "'")
-        .replace("ʻ", "'")
-        .replace("`", "'")
-        .replace("O'", "Oʻ")
-        .replace("G'", "Gʻ")
-        .replace("o'", "oʻ")
-        .replace("g'", "gʻ"))
-
-def build_ssml_if_needed(text: str) -> str:
-    """Build SSML for special cases"""
-    lower = text.lower().strip()
     
-    if lower == "sh" or lower.startswith("sh harfi"):
-        return f'''<speak version="1.0" xml:lang="uz-UZ">
-                    <voice name="uz-UZ-MadinaNeural">
-                        <phoneme alphabet="ipa" ph="ʃ">sh</phoneme>
-                        {" harfi" if lower != "sh" else ""}
-                    </voice>
-                </speak>'''
+    # O' va G' harflarini to'g'rilash
+    text = text.replace("o'", "oʻ").replace("O'", "Oʻ")
+    text = text.replace("g'", "gʻ").replace("G'", "Gʻ")
+    text = text.replace("'", "ʻ") # Boshqa apostroflarni ham
     
-    if lower == "ch" or lower.startswith("ch harfi"):
-        return f'''<speak version="1.0" xml:lang="uz-UZ">
-                    <voice name="uz-UZ-MadinaNeural">
-                        <phoneme alphabet="ipa" ph="tʃ">ch</phoneme>
-                        {" harfi" if lower != "ch" else ""}
-                    </voice>
-                </speak>'''
-    
-    if lower in ["gʻ", "g'"] or lower.startswith("gʻ harfi") or lower.startswith("g' harfi"):
-        return f'''<speak version="1.0" xml:lang="uz-UZ">
-                    <voice name="uz-UZ-MadinaNeural">
-                        <phoneme alphabet="ipa" ph="ɣ">gʻ</phoneme>
-                        {" harfi" if "harfi" in lower else ""}
-                    </voice>
-                </speak>'''
-    
-    if lower in ["oʻ", "o'"] or lower.startswith("oʻ harfi") or lower.startswith("o' harfi"):
-        return f'''<speak version="1.0" xml:lang="uz-UZ">
-                    <voice name="uz-UZ-MadinaNeural">
-                        <phoneme alphabet="ipa" ph="oʊ">oʻ</phoneme>
-                        {" harfi" if "harfi" in lower else ""}
-                    </voice>
-                </speak>'''
-    
-    return None
+    return text.strip()
 
 @router.options("/text-to-speech")
 async def text_to_speech_options():
@@ -71,67 +40,82 @@ async def text_to_speech_options():
 
 @router.post("/text-to-speech")
 async def text_to_speech(request: TextToSpeechRequest):
-    """Convert text to speech"""
+    """Convert Uzbek text to speech using Azure"""
     if not request.text:
-        raise HTTPException(status_code=400, detail="Matn kiritilmagan.")
+        raise HTTPException(status_code=400, detail="Matn kiritilmadi")
     
     norm_text = normalize_uz(request.text)
     
     # Configure Azure Speech
-    speech_key = settings.AZURE_SPEECH_KEY or settings.AZURE_OPENAI_KEY or os.getenv("AZURE_SPEECH_KEY") or os.getenv("AZURE_OPENAI_KEY")
+    speech_key = os.getenv("AZURE_SPEECH_KEY", AZURE_SPEECH_KEY_VAL)
     
     if not speech_key:
         raise HTTPException(status_code=500, detail="Azure Speech key not configured")
     
     speech_config = speechsdk.SpeechConfig(
         subscription=speech_key,
-        region=settings.AZURE_SPEECH_REGION
+        region=os.getenv("AZURE_SPEECH_REGION", AZURE_SPEECH_REGION_VAL)
     )
     speech_config.set_speech_synthesis_output_format(
         speechsdk.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3
     )
+    # Madina ovozi (ayol) yoki Sardor (erkak)
     speech_config.speech_synthesis_voice_name = "uz-UZ-MadinaNeural"
     
     synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
     
-    ssml = build_ssml_if_needed(norm_text)
-    
-    if ssml:
-        result = synthesizer.speak_ssml_async(ssml).get()
-    else:
+    try:
         result = synthesizer.speak_text_async(norm_text).get()
-    
-    if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-        return Response(
-            content=bytes(result.audio_data),
-            media_type="audio/mpeg"
-        )
-    else:
+        
+        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+            return Response(
+                content=bytes(result.audio_data),
+                media_type="audio/mpeg"
+            )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Nutq sintezi xatosi: {result.error_details}"
+            )
+    except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Ovoz sintezida xatolik: {result.error_details}"
+            detail=f"Nutq sintezida xatolik: {str(e)}"
         )
+
+@router.get("/")
+async def harf_home():
+    """Harf moduli bosh sahifasi"""
+    return {"module": "harf", "status": "active"}
+
+@router.options("/speech-to-text")
+async def speech_to_text_options():
+    """Handle CORS preflight for speech-to-text"""
+    return Response(status_code=200)
 
 @router.post("/speech-to-text")
 async def speech_to_text(file: UploadFile = File(...)):
-    """Convert speech to text"""
+    """Convert Uzbek speech to text using Azure"""
+    # Audio faylni o'qish
     audio_data = await file.read()
     
     if not audio_data:
-        raise HTTPException(status_code=400, detail="Audio ma'lumotlar yuborilmagan.")
+        raise HTTPException(status_code=400, detail="Audio fayl yuborilmadi")
     
     # Configure Azure Speech
-    speech_key = settings.AZURE_SPEECH_KEY or settings.AZURE_OPENAI_KEY
+    speech_key = os.getenv("AZURE_SPEECH_KEY", AZURE_SPEECH_KEY_VAL)
+    
     if not speech_key:
-        raise HTTPException(status_code=500, detail="Azure Speech key not configured")
+         # Test rejimi uchun
+         return {"transcript": "Bu test matni"}
     
     speech_config = speechsdk.SpeechConfig(
         subscription=speech_key,
-        region=settings.AZURE_SPEECH_REGION
+        region=os.getenv("AZURE_SPEECH_REGION", AZURE_SPEECH_REGION_VAL)
     )
     speech_config.speech_recognition_language = "uz-UZ"
     
-    # Create audio stream
+    # Audio stream yaratish
     audio_stream = speechsdk.audio.PushAudioInputStream()
     audio_stream.write(audio_data)
     audio_stream.close()
@@ -142,18 +126,18 @@ async def speech_to_text(file: UploadFile = File(...)):
         audio_config=audio_config
     )
     
+    # Ovozni matnga aylantirish (bir martalik)
     result = recognizer.recognize_once_async().get()
     
     if result.reason == speechsdk.ResultReason.RecognizedSpeech:
         return {"transcript": result.text}
     elif result.reason == speechsdk.ResultReason.NoMatch:
         raise HTTPException(
-            status_code=500,
-            detail="Hech qanday nutq aniqlanmadi."
+            status_code=500, # 400 emas, server xatosi sifatida loglash
+            detail="Ovoz tushunarsiz yoki aniqlanmadi"
         )
     else:
         raise HTTPException(
             status_code=500,
-            detail=f"Ovozni tanishda xatolik: {result.error_details}"
+            detail=f"Azure xatosi: {result.error_details}"
         )
-

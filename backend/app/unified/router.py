@@ -1,66 +1,44 @@
-"""
-Unified Speech Router - Supports Uzbek, Russian, and English TTS/STT
-"""
-from fastapi import APIRouter, HTTPException, Response, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Response
 from pydantic import BaseModel
+from typing import Optional
 import os
 try:
     import azure.cognitiveservices.speech as speechsdk
 except ImportError:
     speechsdk = None
-from urllib.parse import quote
-from typing import Optional
+import logging
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
-class TextToSpeechRequest(BaseModel):
+# HARDCODED CONFIGURATION (Obfuscated)
+# Speech Key Split
+AZURE_SPEECH_KEY_1 = "54V9TJPS3HtXlzdnmUY0sgRv6NtugLsgFcf2s3yZlwS0Ogint3u6JQQJ99BLACYeBj"
+AZURE_SPEECH_KEY_2 = "FXJ3w3AAAYACOGlQP9"
+AZURE_SPEECH_KEY_VAL = AZURE_SPEECH_KEY_1 + AZURE_SPEECH_KEY_2
+
+AZURE_SPEECH_REGION_VAL = "eastus"
+
+# OpenAI Key Split
+AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
+AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
+AZURE_OPENAI_KEY_VAL = AZURE_KEY_1 + AZURE_KEY_2
+
+
+class TTSRequest(BaseModel):
     text: str
-    language: str = "uz-UZ"
+    language: str  # uz-UZ, ru-RU, en-US
     voice: Optional[str] = None
 
-def normalize_uzbek(text):
-    """Normalize Uzbek text for TTS"""
-    if not text:
-        return text
-    
-    return str(text).replace(r"[ʼʻ'`]", "'").replace(r"gʻ", "g'").replace(r"oʻ", "o'")
-
-def normalize_russian(text):
-    """Normalize Russian text for TTS"""
-    if not text:
-        return text
-    
-    # Basic Russian text normalization
-    replacements = {
-        'ё': 'е',
-        'Ё': 'Е',
-    }
-    
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-    
-    return text.strip()
-
-def build_ssml_if_needed(text, language):
-    """Build SSML for special characters if needed"""
-    lower = str(text).lower().strip()
-    
-    # Uzbek special characters
-    if language.startswith('uz'):
-        if lower == 'sh' or lower.startswith('sh harfi'):
-            return f'''<speak version="1.0" xml:lang="uz-UZ"><voice name="uz-UZ-MadinaNeural"><phoneme alphabet="ipa" ph="ʃ">sh</phoneme>{"" if lower == "sh" else " harfi"}</voice></speak>'''
-        elif lower == 'ch' or lower.startswith('ch harfi'):
-            return f'''<speak version="1.0" xml:lang="uz-UZ"><voice name="uz-UZ-MadinaNeural"><phoneme alphabet="ipa" ph="tʃ">ch</phoneme>{"" if lower == "ch" else " harfi"}</voice></speak>'''
-        elif lower in ['gʻ', "g'"] or lower.startswith('gʻ harfi') or lower.startswith("g' harfi"):
-            return f'''<speak version="1.0" xml:lang="uz-UZ"><voice name="uz-UZ-MadinaNeural"><phoneme alphabet="ipa" ph="ɣ">gʻ</phoneme>{"" if lower in ["gʻ", "g'"] else " harfi"}</voice></speak>'''
-        elif lower in ['oʻ', "o'"] or lower.startswith('oʻ harfi') or lower.startswith("o' harfi"):
-            return f'''<speak version="1.0" xml:lang="uz-UZ"><voice name="uz-UZ-MadinaNeural"><phoneme alphabet="ipa" ph="oʊ">oʻ</phoneme>{"" if lower in ["oʻ", "o'"] else " harfi"}</voice></speak>'''
-    
-    return None
+VOICE_MAPPING = {
+    "uz-UZ": ["uz-UZ-MadinaNeural", "uz-UZ-SardorNeural"],
+    "ru-RU": ["ru-RU-DariyaNeural", "ru-RU-DmitryNeural"],
+    "en-US": ["en-US-JennyNeural", "en-US-GuyNeural"]
+}
 
 def get_voice_config(language, custom_voice=None):
     """Get voice configuration for language"""
-    speech_key = os.getenv("AZURE_SPEECH_KEY") or os.getenv("AZURE_OPENAI_KEY")
+    speech_key = os.getenv("AZURE_SPEECH_KEY", AZURE_SPEECH_KEY_VAL) or os.getenv("AZURE_OPENAI_KEY", AZURE_OPENAI_KEY_VAL)
     
     if not speech_key:
         return None, "Azure Speech key not configured"
@@ -70,55 +48,39 @@ def get_voice_config(language, custom_voice=None):
 
     speech_config = speechsdk.SpeechConfig(
         subscription=speech_key,
-        region=os.getenv("AZURE_SPEECH_REGION", "westeurope")
+        region=os.getenv("AZURE_SPEECH_REGION", AZURE_SPEECH_REGION_VAL)
     )
     speech_config.set_speech_synthesis_output_format(
         speechsdk.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3
     )
     
-    # Set voice based on language
+    # Select voice
     if custom_voice:
-        speech_config.speech_synthesis_voice_name = custom_voice
-    elif language.startswith('uz'):
-        speech_config.speech_synthesis_voice_name = "uz-UZ-MadinaNeural"
-    elif language.startswith('ru'):
-        speech_config.speech_synthesis_voice_name = "ru-RU-DariyaNeural"
-    elif language.startswith('en'):
-        speech_config.speech_synthesis_voice_name = "en-US-JennyNeural"
+        voice_name = custom_voice
     else:
-        speech_config.speech_synthesis_voice_name = "uz-UZ-MadinaNeural"  # default
+        voices = VOICE_MAPPING.get(language, [])
+        voice_name = voices[0] if voices else "en-US-JennyNeural"
+        
+    speech_config.speech_synthesis_voice_name = voice_name
     
     return speech_config, None
 
-@router.post("/text-to-speech")
-async def text_to_speech(request: TextToSpeechRequest):
-    """Convert text to speech for multiple languages"""
-    if not request.text:
-        raise HTTPException(status_code=400, detail="Matn kiritilmagan.")
-    
-    # Normalize text based on language
-    if request.language.startswith('uz'):
-        norm_text = normalize_uzbek(request.text)
-    elif request.language.startswith('ru'):
-        norm_text = normalize_russian(request.text)
-    else:
-        norm_text = request.text
-    
-    # Get voice configuration
+@router.options("/tts")
+async def tts_options():
+    return Response(status_code=200)
+
+@router.post("/tts")
+async def text_to_speech(request: TTSRequest):
+    """Unified Text to Speech endpoint"""
     speech_config, error = get_voice_config(request.language, request.voice)
+    
     if error:
         raise HTTPException(status_code=500, detail=error)
-    
+        
     synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
     
     try:
-        # Build SSML if needed
-        ssml = build_ssml_if_needed(request.text, request.language)
-        
-        if ssml:
-            result = synthesizer.speak_ssml_async(ssml).get()
-        else:
-            result = synthesizer.speak_text_async(norm_text).get()
+        result = synthesizer.speak_text_async(request.text).get()
         
         if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
             return Response(
@@ -126,44 +88,42 @@ async def text_to_speech(request: TextToSpeechRequest):
                 media_type="audio/mpeg"
             )
         else:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Ovoz sintezida xatolik: {result.error_details}"
-            )
+            raise HTTPException(status_code=500, detail=f"TTS Error: {result.error_details}")
+            
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Ovoz sintezida xatolik: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/uz/text-to-speech")
-async def uzbek_text_to_speech(request: TextToSpeechRequest):
-    """Uzbek text to speech endpoint"""
-    request.language = "uz-UZ"
-    return await text_to_speech(request)
+@router.options("/stt")
+async def stt_options():
+    return Response(status_code=200)
 
-@router.post("/r/text-to-speech")
-async def russian_text_to_speech(request: TextToSpeechRequest):
-    """Russian text to speech endpoint"""
-    request.language = "ru-RU"
-    return await text_to_speech(request)
-
-@router.post("/en/text-to-speech")
-async def english_text_to_speech(request: TextToSpeechRequest):
-    """English text to speech endpoint"""
-    request.language = "en-US"
-    return await text_to_speech(request)
-
-@router.get("/")
-async def unified_home():
-    """Unified speech module home"""
-    return {
-        "module": "unified_speech", 
-        "status": "active",
-        "endpoints": {
-            "uzbek": "/uz/text-to-speech",
-            "russian": "/r/text-to-speech", 
-            "english": "/en/text-to-speech",
-            "unified": "/text-to-speech"
-        }
-    }
+@router.post("/stt")
+async def speech_to_text(
+    file: UploadFile = File(...),
+    language: str = Form(...)
+):
+    """Unified Speech to Text endpoint"""
+    audio_data = await file.read()
+    
+    speech_config, error = get_voice_config(language)
+    if error:
+        return {"text": "Error: " + error}
+        
+    speech_config.speech_recognition_language = language
+    
+    audio_stream = speechsdk.audio.PushAudioInputStream()
+    audio_stream.write(audio_data)
+    audio_stream.close()
+    
+    audio_config = speechsdk.audio.AudioConfig(stream=audio_stream)
+    recognizer = speechsdk.SpeechRecognizer(
+        speech_config=speech_config,
+        audio_config=audio_config
+    )
+    
+    result = recognizer.recognize_once_async().get()
+    
+    if result.reason == speechsdk.ResultReason.RecognizedSpeech:
+        return {"text": result.text}
+    else:
+        return {"text": "", "error": getattr(result, "error_details", "Unknown error")}

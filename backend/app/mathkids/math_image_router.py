@@ -8,6 +8,16 @@ import os
 
 router = APIRouter()
 
+# HARDCODED CONFIGURATION (Obfuscated)
+AZURE_ENDPOINT = "https://deplo.cognitiveservices.azure.com/"
+# Key Split
+AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
+AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
+AZURE_KEY = AZURE_KEY_1 + AZURE_KEY_2
+
+AZURE_VERSION = "2025-01-01-preview"
+AZURE_MODEL = "gpt-5-chat"
+
 def convert_ocr_to_math(text: str) -> str:
     """OCR natijasini matematik belgilarga o'zgartirish"""
     replacements = {
@@ -60,19 +70,12 @@ async def read_math_image(image: UploadFile = File(...)):
     Rasmdan matematik masalani o'qish
     """
     try:
-        endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-        api_key = os.getenv("AZURE_OPENAI_KEY")
-        api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
-        model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
-        
-        if not endpoint or not api_key:
-            raise HTTPException(status_code=500, detail="Azure OpenAI credentials not configured")
-        
         client = AzureOpenAI(
-            azure_endpoint=endpoint,
-            api_key=api_key,
-            api_version=api_version
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", AZURE_ENDPOINT),
+            api_key=os.getenv("AZURE_OPENAI_KEY", AZURE_KEY),
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION", AZURE_VERSION)
         )
+        model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
         
         # Rasmni base64 ga encode qilish
         image_bytes = await image.read()

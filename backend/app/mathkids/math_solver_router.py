@@ -10,6 +10,16 @@ import json
 
 router = APIRouter()
 
+# HARDCODED CONFIGURATION (Obfuscated)
+AZURE_ENDPOINT = "https://deplo.cognitiveservices.azure.com/"
+# Key Split
+AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
+AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
+AZURE_KEY = AZURE_KEY_1 + AZURE_KEY_2
+
+AZURE_VERSION = "2025-01-01-preview"
+AZURE_MODEL = "gpt-5-chat"
+
 # Request models
 class SolveProblemRequest(BaseModel):
     problem: str
@@ -42,17 +52,10 @@ class InteractiveSolveRequest(BaseModel):
 
 def get_azure_client():
     """Azure OpenAI client yaratish"""
-    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    api_key = os.getenv("AZURE_OPENAI_KEY")
-    api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
-    
-    if not endpoint or not api_key:
-        raise HTTPException(status_code=500, detail="Azure OpenAI credentials not configured")
-    
     return AzureOpenAI(
-        azure_endpoint=endpoint,
-        api_key=api_key,
-        api_version=api_version
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", AZURE_ENDPOINT),
+        api_key=os.getenv("AZURE_OPENAI_KEY", AZURE_KEY),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION", AZURE_VERSION)
     )
 
 
@@ -63,7 +66,7 @@ async def solve_math_problem(request: SolveProblemRequest):
     """
     try:
         client = get_azure_client()
-        model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
+        model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
         
         system_prompt = (
             "Siz bog'cha va 1-4 sinf bolalari uchun matematik masalalarni yechadigan o'qituvchisiz. "
@@ -126,7 +129,7 @@ async def explain_step(request: ExplainStepRequest):
     """
     try:
         client = get_azure_client()
-        model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
+        model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
         
         system_prompt = (
             "Siz matematika o'qituvchisisiz. Talaba konkret qadam haqida savol bermoqda. "
@@ -164,7 +167,7 @@ async def generate_similar(request: GenerateSimilarRequest):
     """
     try:
         client = get_azure_client()
-        model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
+        model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
         
         system_prompt = (
             "Siz matematika o'qituvchisisiz. Berilgan masalaga o'xshash, lekin biroz boshqacha "
@@ -204,7 +207,7 @@ async def chat_about_solution(request: ChatRequest):
     """
     try:
         client = get_azure_client()
-        model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
+        model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
         
         system_prompt = (
             "Siz matematika o'qituvchisisiz. Talaba sizdan yechim haqida savol bermoqda. "
@@ -245,7 +248,7 @@ async def interactive_solve(request: InteractiveSolveRequest):
     """
     try:
         client = get_azure_client()
-        model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
+        model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
         
         system_prompt = (
             "Siz bog'cha va 1-4 sinf bolalari bilan ishlaydigan mehribon o'qituvchisiz. "

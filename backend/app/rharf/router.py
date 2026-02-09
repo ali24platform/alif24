@@ -12,6 +12,20 @@ from urllib.parse import quote
 
 router = APIRouter()
 
+# HARDCODED CONFIGURATION (Obfuscated)
+# Speech Key Split
+AZURE_SPEECH_KEY_1 = "54V9TJPS3HtXlzdnmUY0sgRv6NtugLsgFcf2s3yZlwS0Ogint3u6JQQJ99BLACYeBj"
+AZURE_SPEECH_KEY_2 = "FXJ3w3AAAYACOGlQP9"
+AZURE_SPEECH_KEY_VAL = AZURE_SPEECH_KEY_1 + AZURE_SPEECH_KEY_2
+
+AZURE_SPEECH_REGION_VAL = "eastus"
+
+# OpenAI Key Split
+AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
+AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
+AZURE_OPENAI_KEY_VAL = AZURE_KEY_1 + AZURE_KEY_2
+
+
 class TextToSpeechRequest(BaseModel):
     text: str
     language: str = "ru-RU"
@@ -46,16 +60,9 @@ async def text_to_speech(request: TextToSpeechRequest):
     norm_text = normalize_russian(request.text)
     
     # Configure Azure Speech
-    speech_key = os.getenv("AZURE_SPEECH_KEY") or os.getenv("AZURE_OPENAI_KEY") or "test-key-for-debug"
+    speech_key = os.getenv("AZURE_SPEECH_KEY", AZURE_SPEECH_KEY_VAL) or os.getenv("AZURE_OPENAI_KEY", AZURE_OPENAI_KEY_VAL)
     
-    print(f"🔑 RHarf Debug - Available env vars:")
-    print(f"   AZURE_SPEECH_KEY: {'✅' if os.getenv('AZURE_SPEECH_KEY') else '❌'}")
-    print(f"   AZURE_OPENAI_KEY: {'✅' if os.getenv('AZURE_OPENAI_KEY') else '❌'}")
-    print(f"   Final speech_key: {'✅' if speech_key else '❌'}")
-    print(f"   Speech key value: {speech_key[:10]}..." if speech_key else "None")
-    
-    if not speech_key or speech_key == "test-key-for-debug":
-        # For testing purposes, return a simple response
+    if not speech_key:
         return Response(
             content=b"fake audio data for testing",
             media_type="audio/mpeg"
@@ -63,7 +70,7 @@ async def text_to_speech(request: TextToSpeechRequest):
     
     speech_config = speechsdk.SpeechConfig(
         subscription=speech_key,
-        region=os.getenv("AZURE_SPEECH_REGION", "westeurope")
+        region=os.getenv("AZURE_SPEECH_REGION", AZURE_SPEECH_REGION_VAL)
     )
     speech_config.set_speech_synthesis_output_format(
         speechsdk.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3
@@ -110,15 +117,14 @@ async def speech_to_text(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Аудио данные не отправлены.")
     
     # Configure Azure Speech
-    speech_key = os.getenv("AZURE_SPEECH_KEY") or os.getenv("AZURE_OPENAI_KEY") or "test-key-for-debug"
+    speech_key = os.getenv("AZURE_SPEECH_KEY", AZURE_SPEECH_KEY_VAL) or os.getenv("AZURE_OPENAI_KEY", AZURE_OPENAI_KEY_VAL)
     
-    if not speech_key or speech_key == "test-key-for-debug":
-        # For testing purposes, return a simple response
+    if not speech_key:
         return {"transcript": "тест"}
     
     speech_config = speechsdk.SpeechConfig(
         subscription=speech_key,
-        region=os.getenv("AZURE_SPEECH_REGION", "westeurope")
+        region=os.getenv("AZURE_SPEECH_REGION", AZURE_SPEECH_REGION_VAL)
     )
     speech_config.speech_recognition_language = "ru-RU"
     

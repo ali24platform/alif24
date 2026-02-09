@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.middleware.auth import get_current_user
+from app.middleware import deps
 from app.models.teacher_test import TeacherTest, TestType
 from app.models.user import User
 from app.services.test_builder_service import test_builder_service
@@ -55,7 +56,7 @@ def create_test(
     lesson_id: Optional[uuid.UUID] = Form(None),
     classroom_id: Optional[uuid.UUID] = Form(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(deps.require_verified_teacher) # SECURED
 ) -> Any:
     """
     Save a new test. 

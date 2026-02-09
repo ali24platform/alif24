@@ -30,7 +30,7 @@ class TeacherTest(Base):
     
     # O'qituvchi va dars
     teacher_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    lesson_id = Column(UUID(as_uuid=True), ForeignKey("teacher_lessons.id"), nullable=True)
+    lesson_id = Column(UUID(as_uuid=True), ForeignKey("lessons.id"), nullable=True) # Fixed: teacher_lessons -> lessons
     classroom_id = Column(UUID(as_uuid=True), ForeignKey("classrooms.id"), nullable=True)
     
     # Test structure

@@ -10,6 +10,7 @@ import { teacherService } from '../services/teacherService';
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate(); // Added navigate
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedClass, setSelectedClass] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -17,6 +18,10 @@ const TeacherDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Verification Status
+  const isVerified = user?.teacher_profile?.verification_status === 'approved';
+  const isPending = user?.teacher_profile?.verification_status === 'pending';
 
   // Real Data State
   const [classes, setClasses] = useState([]);
@@ -38,9 +43,11 @@ const TeacherDashboard = () => {
 
   // Initial Data Fetch
   React.useEffect(() => {
-    fetchClassrooms();
-    fetchDashboardData();
-  }, []);
+    if (isVerified) {
+      fetchClassrooms();
+      fetchDashboardData();
+    }
+  }, [isVerified]);
 
   const fetchDashboardData = async () => {
     try {
@@ -240,8 +247,44 @@ const TeacherDashboard = () => {
     </header>
   );
 
+  const VerificationBanner = () => (
+    <div style={{
+      background: 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)',
+      color: 'white', padding: '15px 20px', margin: '20px', borderRadius: '12px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      boxShadow: '0 4px 15px rgba(245, 158, 11, 0.2)'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <div style={{ background: 'rgba(255,255,255,0.2)', padding: '10px', borderRadius: '50%' }}>
+          <Clock size={24} />
+        </div>
+        <div>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>Hisobingiz tekshirilmoqda</h3>
+          <p style={{ margin: '5px 0 0', opacity: 0.9, fontSize: '14px' }}>
+            Sizning o'qituvchi profilingiz hozirda moderatorlar tomonidan tasdiqlanish jarayonida.
+          </p>
+        </div>
+      </div>
+      <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', opacity: 0.8 }}>
+          <CheckCircle size={16} /> Ro'yxatdan o'tish
+        </div>
+        <div style={{ width: '30px', height: '2px', background: 'rgba(255,255,255,0.4)' }}></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold' }}>
+          <Clock size={16} /> Tekshiruv
+        </div>
+        <div style={{ width: '30px', height: '2px', background: 'rgba(255,255,255,0.4)' }}></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', opacity: 0.5 }}>
+          <Award size={16} /> Tasdiqlash
+        </div>
+      </div>
+    </div>
+  );
+
   const DashboardView = () => (
     <div className="dashboard-view">
+      {isPending && <VerificationBanner />}
+
       <div className="stats-grid">
         {dashboardStats.map((stat, index) => (
           <div key={index} className="stat-card" style={{ '--accent-color': stat.color }}>
@@ -313,7 +356,11 @@ const TeacherDashboard = () => {
         <div className="card classes-overview">
           <div className="card-header">
             <h2>Mening sinflarim</h2>
-            <button className="btn-primary btn-sm" onClick={() => setShowCreateModal(true)}>
+            <button
+              className={`btn-primary btn-sm ${!isVerified ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => isVerified ? setShowCreateModal(true) : alert("Tasdiqlash kutilmoqda...")}
+              disabled={!isVerified}
+            >
               <Plus size={16} /> Yangi sinf
             </button>
           </div>
@@ -339,6 +386,27 @@ const TeacherDashboard = () => {
                 ))}
             </div>
           )}
+        </div>
+
+        {/* New: Quick Lesson Creator Card */}
+        <div className="card quick-actions">
+          <div className="card-header">
+            <h2>Darslar konstruktori</h2>
+            <Video size={18} />
+          </div>
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <p style={{ color: '#666', marginBottom: '15px' }}>
+              Yangi interaktiv dars va testlarni oson yarating.
+            </p>
+            <button
+              className={`btn-primary ${!isVerified ? 'opacity-50 cursor-not-allowed' : ''}`}
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => isVerified ? navigate('/lesson-builder') : alert("Tasdiqlash kutilmoqda...")}
+              disabled={!isVerified}
+            >
+              <Plus size={18} /> Yangi dars yaratish
+            </button>
+          </div>
         </div>
 
         {/* Create Classroom Modal */}

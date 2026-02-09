@@ -68,16 +68,29 @@ async def get_lesson(
     return {"success": True, "data": lesson}
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def create_lesson(
-    lesson_data: dict,
-    current_user: User = Depends(get_current_active_user),
+def create_lesson(
+    title: str = Form(...),
+    title_uz: str = Form(...),
+    title_ru: str = Form(...),
+    subject_id: uuid.UUID = Form(...),
+    description: str = Form(None),
+    level: int = Form(1),
+    current_user: User = Depends(deps.require_verified_teacher),
     db: Session = Depends(get_db)
 ):
-    """Create new lesson (Admin/Teacher only)"""
-    if current_user.role not in [UserRole.organization, UserRole.moderator, UserRole.teacher]:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-    
+    """
+    Create a new lesson (Verified Teachers Only)
+    """
     service = LessonService(db)
+    lesson_data = {
+        "title": title,
+        "title_uz": title_uz,
+        "title_ru": title_ru,
+        "subject_id": subject_id,
+        "description": description,
+        "level": level,
+        "created_by_id": current_user.id # Assuming current_user has an id
+    }
     lesson = service.create(lesson_data)
     db.commit()
     return {"success": True, "data": lesson}
@@ -86,7 +99,7 @@ async def create_lesson(
 async def update_lesson(
     lesson_id: UUID,
     lesson_data: dict,
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(deps.get_current_active_user), # Changed to deps.get_current_active_user
     db: Session = Depends(get_db)
 ):
     """Update lesson (Admin/Teacher only)"""
@@ -101,9 +114,9 @@ async def update_lesson(
     return {"success": True, "data": lesson}
 
 @router.delete("/{lesson_id}")
-async def delete_lesson(
-    lesson_id: UUID,
-    current_user: User = Depends(get_current_active_user),
+def delete_lesson(
+    lesson_id: uuid.UUID,
+    current_user: User = Depends(deps.require_verified_teacher), # SECURED
     db: Session = Depends(get_db)
 ):
     """Delete lesson (Admin only)"""

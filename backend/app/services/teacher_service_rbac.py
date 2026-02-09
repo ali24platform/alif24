@@ -336,14 +336,14 @@ class TeacherService:
         if not query or len(query) < 3:
             return []
 
-        search = f"%{query}%"
+        # Privacy Fix: Restrict to exact match (Email, Phone, Username)
+        # Prevent wildcards to stop teachers from "mining" student data
         students = self.db.query(User).filter(
             User.role == UserRole.student,
-            (User.email.ilike(search)) | 
-            (User.username.ilike(search)) | 
-            (User.first_name.ilike(search)) | 
-            (User.last_name.ilike(search))
-        ).limit(10).all()
+            (User.email == query) | 
+            (User.phone == query) | 
+            (User.username == query)
+        ).limit(5).all()
 
         result = []
         for student in students:

@@ -50,10 +50,47 @@ async def get_current_active_user(
     from app.models.rbac_models import AccountStatus
     
     if current_user.status != AccountStatus.active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+
+async def require_verified_teacher(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+) -> User:
+    """
+    Ensure user is a Teacher AND has Approved status.
+    Prevent 'Pending' teachers from creating content.
+    """
+    # 1. Check Role
+    if current_user.role != UserRole.teacher:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is not active"
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Only teachers can access this resource"
         )
+
+    # 2. Check Teacher Profile Status
+    # Note: Using joinedload or simple query since user.teacher_profile might not be loaded
+    # But usually relationship is lazy loaded on access if session is active.
+    # Safe approach: Query profile directly to be sure.
+    from app.models.rbac_models import TeacherProfile, TeacherStatus
+    
+    teacher_profile = db.query(TeacherProfile).filter(
+        TeacherProfile.user_id == current_user.id
+    ).first()
+
+    if not teacher_profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Teacher profile not found"
+        )
+
+    if teacher_profile.verification_status != TeacherStatus.approved:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Teacher account is pending approval. You cannot create content yet."
+        )
+
     return current_user
 
 

@@ -10,8 +10,9 @@ import {
   TeacherDashboard,
   StudentDashboard,
   ParentDashboard,
-  TestAIPage,
-  LessonPage
+  LessonPage,
+  LessonBuilder,
+  TestAIPage
 } from './pages';
 import CRMPage from './pages/crm/CRMPage';
 import Harf from './harf/Harf';
@@ -105,6 +106,24 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['student', 'organization', 'moderator']}>
             <LessonPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/lesson-builder"
+        element={
+          <ProtectedRoute allowedRoles={['teacher', 'organization', 'moderator']}>
+            <LessonBuilder />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/lesson-builder"
+        element={
+          <ProtectedRoute allowedRoles={['teacher', 'organization', 'moderator']}>
+            <LessonBuilder />
           </ProtectedRoute>
         }
       />

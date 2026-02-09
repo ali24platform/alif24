@@ -52,7 +52,10 @@ const SecretAdminLogin = () => {
             const response = await fetch('/api/v1/secret/access', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ passphrase: password })
+                body: JSON.stringify({
+                    passphrase: password,
+                    role: adminType
+                })
             });
 
             if (response.ok) {
@@ -75,11 +78,28 @@ const SecretAdminLogin = () => {
         setIsAuthenticated(false);
     };
 
+    // Helper for authenticated requests
+    const authenticatedFetch = async (url) => {
+        const token = localStorage.getItem('secretAdminToken');
+        const response = await fetch(url, {
+            headers: {
+                'X-Secret-Token': token
+            }
+        });
+
+        if (response.status === 403) {
+            handleLogout();
+            throw new Error("Session expired or access denied");
+        }
+
+        return response;
+    };
+
     // Load dashboard data
     const loadDashboard = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/secret/dashboard');
+            const response = await authenticatedFetch('/api/v1/secret/dashboard');
             const data = await response.json();
             if (data.success) {
                 setStats(data.data);
@@ -95,7 +115,7 @@ const SecretAdminLogin = () => {
     const loadUsers = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/secret/users?limit=100');
+            const response = await authenticatedFetch('/api/v1/secret/users?limit=100');
             const data = await response.json();
             if (data.success) {
                 setUsers(data.data.users);
@@ -112,7 +132,7 @@ const SecretAdminLogin = () => {
         setSearchQuery(query);
         if (query.length >= 3) {
             try {
-                const response = await fetch(`/api/v1/secret/search?q=${encodeURIComponent(query)}`);
+                const response = await authenticatedFetch(`/api/v1/secret/search?q=${encodeURIComponent(query)}`);
                 const data = await response.json();
                 if (data.success) {
                     setSearchResults(data.data.results);
@@ -129,7 +149,7 @@ const SecretAdminLogin = () => {
     const loadTables = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/secret/database/tables');
+            const response = await authenticatedFetch('/api/v1/secret/database/tables');
             const data = await response.json();
             if (data.success) {
                 setTables(data.data.tables);
@@ -146,7 +166,7 @@ const SecretAdminLogin = () => {
         setLoading(true);
         setSelectedTable(tableName);
         try {
-            const response = await fetch(`/api/v1/secret/database/table/${tableName}?limit=50`);
+            const response = await authenticatedFetch(`/api/v1/secret/database/table/${tableName}?limit=50`);
             const data = await response.json();
             if (data.success) {
                 setTableData(data.data);
@@ -266,8 +286,8 @@ const SecretAdminLogin = () => {
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${activeTab === item.id
-                                    ? 'bg-purple-600 text-white'
-                                    : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+                                ? 'bg-purple-600 text-white'
+                                : 'text-slate-400 hover:bg-slate-700 hover:text-white'
                                 }`}
                         >
                             <item.icon className="w-5 h-5" />
@@ -415,8 +435,8 @@ const SecretAdminLogin = () => {
                                             key={i}
                                             onClick={() => loadTableData(table)}
                                             className={`w-full text-left px-3 py-2 rounded-lg transition-all text-sm ${selectedTable === table
-                                                    ? 'bg-purple-600 text-white'
-                                                    : 'text-slate-300 hover:bg-slate-700'
+                                                ? 'bg-purple-600 text-white'
+                                                : 'text-slate-300 hover:bg-slate-700'
                                                 }`}
                                         >
                                             {table}

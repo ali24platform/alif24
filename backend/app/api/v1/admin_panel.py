@@ -6,7 +6,7 @@ Yashirin admin paneli uchun endpointlar:
 - /nurali, /hazratqul, /pedagog yo'llaridan foydalanish uchun
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from pydantic import BaseModel, Field
@@ -82,19 +82,44 @@ def verify_secret_access(passphrase: str) -> bool:
 # ENDPOINTS
 # ============================================================
 
+# ============================================================
+# SECURITY: In-Memory Session Storage
+# ============================================================
+# Maps token -> role (nurali, hazratqul, pedagog)
+SECRET_SESSIONS = {}
+
+class SecretAccessRequest(BaseModel):
+    """Maxfiy kirish uchun so'rov"""
+    passphrase: str = Field(..., description="Secret passphrase for admin access")
+    role: str = Field(..., description="Role attempting access (nurali, hazratqul, pedagog)")
+
+async def require_secret_token(
+    x_secret_token: str = Header(..., alias="X-Secret-Token")
+) -> str:
+    """
+    Validate session token and return the role.
+    """
+    if x_secret_token not in SECRET_SESSIONS:
+        raise HTTPException(status_code=403, detail="Invalid or expired session token")
+    return SECRET_SESSIONS[x_secret_token]
+
 @router.post("/access", response_model=SecretAccessResponse)
 async def secret_access(request: SecretAccessRequest):
     """
     Maxfiy admin paneliga kirish
-    
-    Parol to'g'ri bo'lsa, session token qaytariladi
     """
     if not verify_secret_access(request.passphrase):
         raise HTTPException(status_code=403, detail="Invalid passphrase")
     
-    # Generate simple session token (in production, use proper JWT)
+    if request.role not in ['nurali', 'hazratqul', 'pedagog']:
+        raise HTTPException(status_code=400, detail="Invalid role")
+
+    # Generate session token
     import secrets
     token = secrets.token_urlsafe(32)
+    
+    # Store session
+    SECRET_SESSIONS[token] = request.role
     
     return SecretAccessResponse(
         success=True,
@@ -104,7 +129,10 @@ async def secret_access(request: SecretAccessRequest):
 
 
 @router.get("/dashboard")
-async def get_dashboard_stats(db: Session = Depends(get_db)):
+async def get_dashboard_stats(
+    role: str = Depends(require_secret_token),
+    db: Session = Depends(get_db)
+):
     """
     Platform statistikasi - Dashboard uchun
     """
@@ -194,7 +222,11 @@ async def get_all_users(
 
 
 @router.get("/user/{user_id}")
-async def get_user_details(user_id: str, db: Session = Depends(get_db)):
+async def get_user_details(
+    user_id: str, 
+    role: str = Depends(require_secret_token),
+    db: Session = Depends(get_db)
+):
     """
     Foydalanuvchi haqida to'liq ma'lumot
     """
@@ -223,6 +255,7 @@ async def get_user_details(user_id: str, db: Session = Depends(get_db)):
 @router.get("/search")
 async def smart_search(
     q: str = Query(..., min_length=3, description="Search query (min 3 characters)"),
+    role: str = Depends(require_secret_token),
     db: Session = Depends(get_db)
 ):
     """
@@ -263,7 +296,13 @@ async def smart_search(
 
 
 @router.get("/database/tables")
-async def get_database_tables(db: Session = Depends(get_db)):
+async def get_database_tables(
+    role: str = Depends(require_secret_token),
+    db: Session = Depends(get_db)
+):
+    if role == 'pedagog':
+        raise HTTPException(status_code=403, detail="Access Denied: Founders Only")
+
     """
     Ma'lumotlar bazasi jadvallari ro'yxati
     """
@@ -293,8 +332,12 @@ async def get_table_data(
     table_name: str,
     skip: int = 0,
     limit: int = 50,
+    role: str = Depends(require_secret_token),
     db: Session = Depends(get_db)
 ):
+    if role == 'pedagog':
+        raise HTTPException(status_code=403, detail="Access Denied: Founders Only")
+
     """
     Jadval ma'lumotlarini ko'rish (faqat SELECT)
     
@@ -367,6 +410,7 @@ async def get_activity_log(
     days: int = 7,
     skip: int = 0,
     limit: int = 100,
+    role: str = Depends(require_secret_token),
     db: Session = Depends(get_db)
 ):
     """

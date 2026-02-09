@@ -7,13 +7,15 @@ from dotenv import load_dotenv
 load_dotenv()
 router = APIRouter()
 
-client = AzureOpenAI(
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_key=os.getenv("AZURE_OPENAI_KEY"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION")
-)
 
 model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
+
+def get_client():
+    return AzureOpenAI(
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        api_key=os.getenv("AZURE_OPENAI_KEY"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION")
+    )
 
 def clean_text_for_tts(text):
     """Matnni TTS uchun tozalash"""
@@ -33,6 +35,7 @@ async def read_image(file: UploadFile = File(...)):
             detail=f"Rasm hajmi juda katta. Maksimal hajm: 50MB"
         )
     
+
     encoded = base64.b64encode(image_bytes).decode("utf-8")
 
     prompt = (
@@ -44,6 +47,7 @@ async def read_image(file: UploadFile = File(...)):
     )
 
     try:
+        client = get_client()
         response = client.chat.completions.create(
             model=model,
             messages=[{

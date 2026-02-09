@@ -1,6 +1,17 @@
 """
 Permission Dependencies for RBAC
 FastAPI dependencies for role-based access control
+
+FIX: Removed duplicate get_current_user definition.
+     Now imports the canonical version from app.middleware.auth which:
+     - Handles TokenExpiredError gracefully (frontend can trigger refresh)
+     - Checks AccountStatus consistently
+     - Uses UnauthorizedError for proper error codes
+     
+     Previously, deps.py had its own version that:
+     - Used generic HTTPException (no TOKEN_EXPIRED code)
+     - Didn't check AccountStatus (left to get_current_active_user)
+     This caused inconsistent auth behavior between auth routes and RBAC routes.
 """
 from typing import Optional, List
 from uuid import UUID
@@ -13,8 +24,12 @@ from app.core.database import get_db
 from app.core.config import settings
 from app.models.rbac_models import User, UserRole, StudentProfile, TeacherProfile, Classroom
 
+# FIX: Import canonical get_current_user from auth.py instead of redefining it
+# This is the SINGLE SOURCE OF TRUTH for user authentication
+from app.middleware.auth import get_current_user
 
-# Security scheme
+
+# Security scheme (kept for any direct usage in this module)
 security = HTTPBearer()
 
 
@@ -22,43 +37,8 @@ security = HTTPBearer()
 # BASE DEPENDENCIES
 # ============================================================
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
-) -> User:
-    """
-    Get current authenticated user from JWT token
-    """
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
-    try:
-        token = credentials.credentials
-        payload = jwt.decode(
-            token, 
-            settings.JWT_SECRET, 
-            algorithms=[settings.JWT_ALGORITHM]
-        )
-        user_id: str = payload.get("userId")
-        if user_id is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
-    
-    # Convert string to UUID for proper SQLAlchemy filtering
-    try:
-        user_uuid = UUID(user_id)
-    except (ValueError, TypeError):
-        raise credentials_exception
-    
-    user = db.query(User).filter(User.id == user_uuid).first()
-    if user is None:
-        raise credentials_exception
-    
-    return user
+# get_current_user is now imported from app.middleware.auth (see import above)
+# It handles: JWT decode, UUID parsing, user lookup, AccountStatus check, TokenExpiredError
 
 
 async def get_current_active_user(

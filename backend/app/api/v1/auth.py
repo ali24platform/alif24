@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional
 from datetime import datetime
 from app.core.database import get_db
 from app.middleware.auth import get_current_user
@@ -22,6 +23,20 @@ class ChangePasswordRequest(BaseModel):
     
     class Config:
         populate_by_name = True  # Allows both field name and alias
+
+class UpdateProfileRequest(BaseModel):
+    """
+    Schema for profile updates via PUT /auth/me.
+    All fields optional — only provided fields are updated.
+    FIX: This schema + endpoint was MISSING (ghost endpoint in frontend).
+    """
+    first_name: Optional[str] = Field(None, alias="firstName")
+    last_name: Optional[str] = Field(None, alias="lastName")
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+    
+    class Config:
+        populate_by_name = True
 
 @router.post("/register")
 async def register(data: RegisterRequest, db: Session = Depends(get_db)):
@@ -135,3 +150,26 @@ async def get_profile(
         "data": profile
     }
 
+@router.put("/me")
+async def update_profile(
+    data: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update current user profile.
+    FIX: This endpoint was MISSING — frontend called PUT /auth/profile (ghost endpoint).
+    Now properly implemented at PUT /auth/me to match GET /auth/me pattern.
+    
+    Accepts: { firstName, lastName, phone, email } — all optional.
+    Only fields actually provided (non-null) are updated.
+    """
+    service = AuthService(db)
+    # Only pass fields that were actually provided (not None)
+    updates = data.model_dump(exclude_none=True, by_alias=False)
+    profile = await service.update_profile(str(current_user.id), updates)
+    return {
+        "success": True,
+        "message": "Profile updated successfully",
+        "data": profile
+    }

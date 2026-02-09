@@ -182,3 +182,48 @@ class AuthService:
         
         return user.to_dict()
 
+    async def update_profile(self, user_id: str, updates: dict):
+        """
+        Update user profile fields.
+        FIX: This method was MISSING — needed for PUT /auth/me endpoint.
+        
+        Args:
+            user_id: UUID string of the user
+            updates: Dict of fields to update (only non-None fields from request)
+        Returns:
+            Updated user dict
+        """
+        user = self.user_repo.find_by_id(user_id)
+        if not user:
+            raise NotFoundError("User not found")
+        
+        # Validate email uniqueness if changing email
+        if "email" in updates and updates["email"]:
+            new_email = updates["email"].lower()
+            if new_email != (user.email or "").lower():
+                existing = self.user_repo.find_by_email(new_email)
+                if existing and str(existing.id) != user_id:
+                    raise ConflictError("Email already registered by another user")
+            updates["email"] = new_email
+        
+        # Validate phone uniqueness if changing phone
+        if "phone" in updates and updates["phone"]:
+            new_phone = updates["phone"].strip()
+            if new_phone != (user.phone or ""):
+                existing = self.user_repo.find_by_phone(new_phone)
+                if existing and str(existing.id) != user_id:
+                    raise ConflictError("Phone number already registered by another user")
+            updates["phone"] = new_phone
+        
+        # Apply updates to user object
+        allowed_fields = {"first_name", "last_name", "phone", "email"}
+        for field, value in updates.items():
+            if field in allowed_fields and hasattr(user, field):
+                setattr(user, field, value)
+        
+        self.db.commit()
+        self.db.refresh(user)
+        
+        logger.info(f"Profile updated for user: {user.email or user.phone}")
+        
+        return user.to_dict()

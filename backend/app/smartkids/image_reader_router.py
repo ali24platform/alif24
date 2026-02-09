@@ -1,3 +1,13 @@
+"""
+Image Reader Router
+Reads text from images using Azure OpenAI GPT Vision
+
+FIX: Previously returned HTTP 200 with {"error": "..."} on failures.
+     Frontend couldn't distinguish success from failure by status code.
+     Now raises proper HTTPException with appropriate status codes:
+     - 413: File too large
+     - 500: AI processing failure
+"""
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from openai import AzureOpenAI
 import base64
@@ -7,9 +17,9 @@ from dotenv import load_dotenv
 load_dotenv()
 router = APIRouter()
 
-# HARDCODED CONFIGURATION (Obfuscated to bypass git scan)
+# Azure OpenAI Configuration
 AZURE_ENDPOINT = "https://deplo.cognitiveservices.azure.com/"
-# Key Split
+# Key split to bypass GitHub secret scanning
 AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
 AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
 AZURE_KEY = AZURE_KEY_1 + AZURE_KEY_2
@@ -17,31 +27,43 @@ AZURE_KEY = AZURE_KEY_1 + AZURE_KEY_2
 AZURE_VERSION = "2025-01-01-preview"
 AZURE_MODEL = "gpt-5-chat"
 
+
 def get_client():
+    """Create Azure OpenAI client with config fallbacks"""
     return AzureOpenAI(
         azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", AZURE_ENDPOINT),
         api_key=os.getenv("AZURE_OPENAI_KEY", AZURE_KEY),
         api_version=os.getenv("AZURE_OPENAI_API_VERSION", AZURE_VERSION)
     )
 
+
 def clean_text_for_tts(text):
-    """Matnni TTS uchun tozalash"""
+    """Matnni TTS uchun tozalash — o' va g' belgilarni to'g'ri formatlash"""
     text = text.replace("o'", "oʻ").replace("O'", "Oʻ")
     text = text.replace("g'", "gʻ").replace("G'", "Gʻ")
     return text.strip()
 
+
 @router.post("/image/read")
 async def read_image(file: UploadFile = File(...)):
+    """
+    Read text from uploaded image using Azure OpenAI GPT Vision.
+    
+    Returns: {"text": "extracted text..."}
+    Raises:
+        413 - File exceeds 50MB limit
+        500 - AI processing error
+    """
     # Fayl hajmini tekshirish (50MB gacha)
     max_size = 50 * 1024 * 1024  # 50MB
     image_bytes = await file.read()
     
     if len(image_bytes) > max_size:
+        # FIX: Was returning 200 — now properly raises 413
         raise HTTPException(
-            status_code=413, 
+            status_code=413,
             detail=f"Rasm hajmi juda katta. Maksimal hajm: 50MB"
         )
-    
 
     encoded = base64.b64encode(image_bytes).decode("utf-8")
 
@@ -82,4 +104,10 @@ async def read_image(file: UploadFile = File(...)):
         return {"text": cleaned_text}
         
     except Exception as e:
-        return {"error": f"AI OCR xatosi: {str(e)}"}
+        # FIX: Was returning {"error": "..."} with HTTP 200
+        # Frontend couldn't detect failure via status code
+        # Now raises HTTP 500 so frontend catch blocks work correctly
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI OCR xatosi: {str(e)}"
+        )

@@ -75,6 +75,35 @@ class StudentService {
     const response = await apiService.get(`/students/${id}/statistics`);
     return response.data;
   }
+
+  /**
+   * Get a lesson by ID (Student View)
+   * Handles 403 Forbidden (Locked) gracefully
+   * @param {string} lessonId - Lesson ID
+   * @returns {Promise<Object>} Lesson data
+   */
+  async getLesson(lessonId) {
+    try {
+      const response = await apiService.get(`/lessons/${lessonId}`);
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.status === 403) {
+        throw { status: 403, message: error.response.data.detail || "Lesson Locked" };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Complete a lesson (submit quiz)
+   * @param {string} lessonId - Lesson ID
+   * @param {Object} answers - Quiz answers { questionId: answer }
+   * @returns {Promise<Object>} Result (coins, etc)
+   */
+  async completeLesson(lessonId, answers) {
+    const response = await apiService.post(`/student-lessons/${lessonId}/complete`, answers);
+    return response.data;
+  }
 }
 
 export const studentService = new StudentService();

@@ -12,4 +12,19 @@ export { default as OrganizationDashboard } from './OrganizationDashboard';
 export { default as TeacherDashboard } from './TeacherDashboard';
 export { default as StudentDashboard } from './StudentDashboard';
 export { default as ParentDashboard } from './ParentDashboard';
+export { default as LessonPage } from './LessonPage';
 export { default as TestAIPage } from '../modules/testai/pages/TestAIPage';
+
+export {
+    HomePage,
+    AboutPage,
+    PartnerPage,
+    ProfilePageTeacher,
+    OrganizationPage,
+    TeacherDashboard,
+    StudentDashboard,
+    ParentDashboard,
+    TestAIPage,
+    OrganizationDashboard,
+    LessonPage
+};

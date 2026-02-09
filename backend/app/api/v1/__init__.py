@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from app.api.v1 import auth, users, students, lessons, games, profiles, avatars, teacher_tests, rbac_endpoints
 from app.api.v1 import verification
 
-from app.api.v1.endpoints import testai, notification, organization_structure, schedule, olympiad, coins, live_quiz
+from app.api.v1.endpoints import testai, notification, organization_structure, schedule, olympiad, coins, live_quiz, student_lesson_router
 
 router = APIRouter()
 
@@ -68,6 +68,7 @@ router.include_router(schedule.router, prefix="/schedule", tags=["schedule"])
 router.include_router(olympiad.router)
 router.include_router(coins.router)
 router.include_router(live_quiz.router)
+router.include_router(student_lesson_router.router, prefix="/student-lessons", tags=["lessons-student"])
 
 # SECRET: Admin Panel (yashirin admin panel)
 # SECRET: Admin Panel (yashirin admin panel)

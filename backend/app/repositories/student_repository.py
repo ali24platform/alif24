@@ -2,14 +2,15 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from app.models.student import Student
 from app.repositories.base_repository import BaseRepository
+from uuid import UUID
 
 class StudentRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(Student, db)
     
-    def find_by_user_id(self, user_id: str) -> Optional[Student]:
+    def get_by_user_id(self, user_id: UUID) -> Optional[Student]:
         """Find student by user ID"""
-        return self.find_one({"user_id": user_id})
+        return self.db.query(Student).filter(Student.user_id == user_id).first()
     
     def find_with_user(self, id: str):
         """Find student with user details"""

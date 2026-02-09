@@ -46,6 +46,10 @@ class Lesson(Base):
     # Relationships - Fixed: TeacherProfile instead of Teacher
     subject = relationship("Subject", back_populates="lessons", foreign_keys=[subject_id])
     teacher = relationship("TeacherProfile", foreign_keys=[teacher_id])  # Removed back_populates since TeacherProfile doesn't have lessons
+    
+    # One-to-One relationship with TeacherTest (Async Quiz)
+    quiz = relationship("TeacherTest", uselist=False, back_populates="lesson", foreign_keys="TeacherTest.lesson_id")
+    
     # Progress relationship removed temporarily due to FK mismatch
     # progress = relationship("Progress", back_populates="lesson", foreign_keys="Progress.lesson_id")
 

@@ -27,12 +27,44 @@ async def get_lessons(
     return {"success": True, "data": lessons}
 
 @router.get("/{lesson_id}", response_model=dict)
-async def get_lesson(lesson_id: UUID, db: Session = Depends(get_db)):
-    """Get specific lesson by ID"""
+async def get_lesson(
+    lesson_id: UUID, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get specific lesson by ID with prerequisite check for students"""
     service = LessonService(db)
     lesson = service.find_by_id(str(lesson_id))
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
+        
+    # Student Prerequisite Check
+    if current_user.role == UserRole.student:
+        # 1. Get Student Profile
+        from app.models import StudentProfile, Progress, ProgressStatus, Lesson
+        student = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.id).first()
+        
+        if student and lesson.order > 1:
+            # 2. Find previous lesson
+            prev_lesson = db.query(Lesson).filter(
+                Lesson.subject_id == lesson.subject_id,
+                Lesson.order == lesson.order - 1
+            ).first()
+            
+            if prev_lesson:
+                # 3. Check completion
+                progress = db.query(Progress).filter(
+                    Progress.student_id == student.id,
+                    Progress.lesson_id == prev_lesson.id,
+                    Progress.status == ProgressStatus.COMPLETED
+                ).first()
+                
+                if not progress:
+                    raise HTTPException(
+                        status_code=403, 
+                        detail=f"You must complete lesson '{prev_lesson.title}' first."
+                    )
+
     return {"success": True, "data": lesson}
 
 @router.post("/", status_code=status.HTTP_201_CREATED)

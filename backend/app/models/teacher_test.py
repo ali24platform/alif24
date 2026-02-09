@@ -70,7 +70,7 @@ class TeacherTest(Base):
     
     # Relationships
     teacher = relationship("User", foreign_keys=[teacher_id])
-    lesson = relationship("TeacherLesson", back_populates="tests")
+    lesson = relationship("Lesson", back_populates="quiz")
     classroom = relationship("Classroom", backref="tests")
     results = relationship("TestResult", back_populates="test", cascade="all, delete-orphan")
 

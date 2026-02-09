@@ -30,6 +30,36 @@ from app.smartkids import story_router, file_reader_router
 router.include_router(story_router.router, prefix="/smartkids", tags=["smartkids"])
 router.include_router(file_reader_router.router, prefix="/smartkids", tags=["smartkids"])
 
+# SmartKids - Image Reader and Speech Token
+from app.smartkids import image_reader_router, speech_token_router
+router.include_router(image_reader_router.router, prefix="/smartkids", tags=["smartkids"])
+router.include_router(speech_token_router.router, prefix="/smartkids", tags=["smartkids"])
+
+# MathKids Routers
+from app.mathkids import math_image_router, math_solver_router
+router.include_router(math_image_router.router, prefix="/mathkids", tags=["mathkids"])
+router.include_router(math_solver_router.router, prefix="/mathkids", tags=["mathkids"])
+
+# Harf (Uzbek Letters) Router
+from app.harf import router as harf_router
+router.include_router(harf_router.router, prefix="/harf", tags=["harf"])
+
+# RHarf (Russian Letters) Router
+from app.rharf import router as rharf_router
+router.include_router(rharf_router.router, prefix="/rharf", tags=["rharf"])
+
+# Unified Speech Router (Multi-language TTS/STT)
+from app.unified import router as unified_router
+router.include_router(unified_router.router, prefix="/unified", tags=["unified"])
+
+# Guest Session Router
+from app.api.guest import router as guest_router
+router.include_router(guest_router.router)
+
+# Organization Dashboard Router
+from app.organization import router as org_dashboard_router
+router.include_router(org_dashboard_router.router, prefix="/org-dashboard", tags=["organization"])
+
 # Organization Routers
 router.include_router(organization_structure.router, prefix="/organization-structure", tags=["organization-structure"])
 router.include_router(schedule.router, prefix="/schedule", tags=["schedule"])

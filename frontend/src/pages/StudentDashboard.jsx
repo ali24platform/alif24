@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 
 const STORY_API_BASE = import.meta.env.VITE_API_URL
-    ? import.meta.env.VITE_API_URL.replace('/v1', '/story')
-    : "http://localhost:8000/api/story";
+    ? import.meta.env.VITE_API_URL + '/smartkids'
+    : "http://localhost:8000/api/v1/smartkids";
 
 const StudentDashboard = () => {
     const { language } = useLanguage();

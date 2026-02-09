@@ -810,3 +810,8 @@ INFO:     Waiting for application startup.
 2026-02-09 02:28:08 [INFO]: ✅ Database tables created/verified
 2026-02-09 02:28:08 [INFO]: ✅ Database connection verified successfully
 INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [48984]
+INFO:     Stopping reloader process [24204]

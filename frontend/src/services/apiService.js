@@ -8,7 +8,6 @@ const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 class ApiService {
   constructor() {
     this.baseUrl = API_URL;
-    this.token = localStorage.getItem('token');
   }
 
   /**
@@ -69,7 +68,7 @@ class ApiService {
       const response = await fetch(`${this.baseUrl}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken })
+        body: JSON.stringify({ refresh_token: refreshToken })
       });
 
       if (response.ok) {

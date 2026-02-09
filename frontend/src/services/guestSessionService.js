@@ -1,9 +1,12 @@
 /**
  * Guest Session Service - Frontend API for guest tracking
+ * 
+ * FIXED: Was using raw axios with hardcoded localhost URL and had
+ * an infinite retry loop on 404. Now uses correct base URL and
+ * limits retries to prevent browser freeze.
  */
-import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 class GuestSessionService {
   constructor() {
@@ -12,12 +15,48 @@ class GuestSessionService {
   }
 
   /**
+   * Get auth headers (guest sessions don't need auth, but include if available)
+   */
+  getHeaders() {
+    return { 'Content-Type': 'application/json' };
+  }
+
+  /**
+   * Make a fetch request with proper error handling
+   */
+  async request(method, endpoint, body = null) {
+    const baseUrl = API_URL.startsWith('http')
+      ? API_URL
+      : `${window.location.origin}${API_URL}`;
+
+    const options = {
+      method,
+      headers: this.getHeaders(),
+    };
+
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(`${baseUrl}${endpoint}`, options);
+    const data = await response.json();
+
+    if (!response.ok) {
+      const error = new Error(data.detail || data.message || 'Request failed');
+      error.status = response.status;
+      throw error;
+    }
+
+    return data;
+  }
+
+  /**
    * Generate browser fingerprint (simple version)
    */
   generateFingerprint() {
     const nav = window.navigator;
     const screen = window.screen;
-    
+
     const data = [
       nav.userAgent,
       nav.language,
@@ -27,8 +66,7 @@ class GuestSessionService {
       !!window.sessionStorage,
       !!window.localStorage,
     ].join('|');
-    
-    // Simple hash function
+
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
@@ -38,23 +76,14 @@ class GuestSessionService {
     return hash.toString(36);
   }
 
-  /**
-   * Get stored session token
-   */
   getSessionToken() {
     return localStorage.getItem(this.SESSION_KEY);
   }
 
-  /**
-   * Store session token
-   */
   setSessionToken(token) {
     localStorage.setItem(this.SESSION_KEY, token);
   }
 
-  /**
-   * Get or create fingerprint
-   */
   getFingerprint() {
     let fingerprint = localStorage.getItem(this.FINGERPRINT_KEY);
     if (!fingerprint) {
@@ -66,17 +95,13 @@ class GuestSessionService {
 
   /**
    * Create or get guest session
-   * @returns {Promise<{session_token: string, message: string}>}
    */
   async createSession() {
     try {
       const fingerprint = this.getFingerprint();
-      const response = await axios.post(`${API_BASE}/guest/session`, {
-        fingerprint
-      });
-      
-      this.setSessionToken(response.data.session_token);
-      return response.data;
+      const data = await this.request('POST', '/guest/session', { fingerprint });
+      this.setSessionToken(data.session_token);
+      return data;
     } catch (error) {
       console.error('Error creating guest session:', error);
       throw error;
@@ -85,43 +110,39 @@ class GuestSessionService {
 
   /**
    * Track content access
-   * @param {string} contentType - 'harf', 'rharf', 'math', etc.
-   * @param {string} contentId - Letter ID, game ID, etc.
-   * @returns {Promise<{requires_login: boolean, content_accessed_count: number, message: string}>}
+   * FIXED: Added retry limit to prevent infinite recursion
    */
-  async trackContentAccess(contentType, contentId) {
+  async trackContentAccess(contentType, contentId, _retried = false) {
     try {
       let sessionToken = this.getSessionToken();
-      
-      // If no session token, create one first
+
       if (!sessionToken) {
         const sessionData = await this.createSession();
         sessionToken = sessionData.session_token;
       }
-      
-      const response = await axios.post(`${API_BASE}/guest/track`, {
+
+      const data = await this.request('POST', '/guest/track', {
         session_token: sessionToken,
         content_type: contentType,
         content_id: contentId
       });
-      
-      return response.data;
+
+      return data;
     } catch (error) {
       console.error('Error tracking content access:', error);
-      
-      // If session not found, create new one and retry
-      if (error.response?.status === 404) {
+
+      // If session not found, create new one and retry ONCE (not infinitely)
+      if (error.status === 404 && !_retried) {
         localStorage.removeItem(this.SESSION_KEY);
-        return this.trackContentAccess(contentType, contentId);
+        return this.trackContentAccess(contentType, contentId, true);
       }
-      
+
       throw error;
     }
   }
 
   /**
    * Check session status
-   * @returns {Promise<{exists: boolean, requires_login: boolean, content_accessed_count: number}>}
    */
   async checkSessionStatus() {
     try {
@@ -133,9 +154,9 @@ class GuestSessionService {
           message: 'No session found'
         };
       }
-      
-      const response = await axios.get(`${API_BASE}/guest/status/${sessionToken}`);
-      return response.data;
+
+      const data = await this.request('GET', `/guest/status/${sessionToken}`);
+      return data;
     } catch (error) {
       console.error('Error checking session status:', error);
       return {
@@ -148,19 +169,14 @@ class GuestSessionService {
 
   /**
    * Convert guest session to user account after registration/login
-   * @param {string} userId - User ID from backend
-   * @returns {Promise<boolean>}
    */
   async convertToUser(userId) {
     try {
       const sessionToken = this.getSessionToken();
       if (!sessionToken) return false;
-      
-      await axios.post(`${API_BASE}/guest/convert/${sessionToken}`, null, {
-        params: { user_id: userId }
-      });
-      
-      // Clear guest session after conversion
+
+      await this.request('POST', `/guest/convert/${sessionToken}?user_id=${userId}`);
+
       localStorage.removeItem(this.SESSION_KEY);
       return true;
     } catch (error) {
@@ -169,9 +185,6 @@ class GuestSessionService {
     }
   }
 
-  /**
-   * Clear guest session (logout or reset)
-   */
   clearSession() {
     localStorage.removeItem(this.SESSION_KEY);
   }

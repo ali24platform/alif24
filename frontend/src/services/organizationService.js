@@ -1,75 +1,91 @@
-import api from './api';
+/**
+ * Organization Service
+ * Handles organization-related API calls
+ * 
+ * FIXED: Was using orphaned api.js (axios). Now uses unified apiService.js
+ * for consistent auth handling and error management.
+ */
+import apiService from './apiService';
 
 const organizationService = {
     // --- Stats ---
     getStats: async () => {
-        const response = await api.get('/organization/stats');
-        return response.data;
+        const response = await apiService.get('/organization/stats');
+        return response;
     },
 
     // --- Users ---
     getUsers: async (role) => {
         const params = {};
         if (role) params.role = role;
-        // Using generic admin users endpoint for now, assuming organization has access
-        const response = await api.get('/organization/users', { params });
-        return response.data;
+        const response = await apiService.get('/organization/users', params);
+        return response;
     },
 
     inviteStudent: async (data) => {
-        const response = await api.post('/organization-structure/students/invite', data);
-        return response.data;
+        const response = await apiService.post('/organization-structure/students/invite', data);
+        return response;
     },
 
     // --- Teachers ---
     getTeachers: async () => {
-        const response = await api.get('/organization-structure/teachers');
-        return response.data;
+        const response = await apiService.get('/organization-structure/teachers');
+        return response;
     },
 
     addTeacher: async (teacherId) => {
-        const response = await api.post('/organization-structure/teachers', { teacher_id: teacherId });
-        return response.data;
+        const response = await apiService.post('/organization-structure/teachers', { teacher_id: teacherId });
+        return response;
     },
 
     removeTeacher: async (teacherId) => {
-        const response = await api.delete(`/organization-structure/teachers/${teacherId}`);
-        return response.data;
+        const response = await apiService.delete(`/organization-structure/teachers/${teacherId}`);
+        return response;
     },
 
     // --- Materials (Content Box) ---
     getMaterials: async () => {
-        const response = await api.get('/organization-structure/materials');
-        return response.data;
+        const response = await apiService.get('/organization-structure/materials');
+        return response;
     },
 
     uploadMaterial: async (formData) => {
-        const response = await api.post('/organization-structure/materials', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
+        // For file uploads, we need raw fetch with FormData
+        const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+        const token = localStorage.getItem('accessToken');
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        // Don't set Content-Type for FormData — browser sets it with boundary
+        const response = await fetch(`${API_URL}/organization-structure/materials`, {
+            method: 'POST',
+            headers,
+            body: formData
         });
-        return response.data;
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.detail || 'Upload failed');
+        }
+        return response.json();
     },
 
     // --- Schedule ---
     getSchedule: async (classroomId) => {
-        const response = await api.get(`/schedule/classroom/${classroomId}`);
-        return response.data;
+        const response = await apiService.get(`/schedule/classroom/${classroomId}`);
+        return response;
     },
 
     createSchedule: async (scheduleData) => {
-        const response = await api.post('/schedule/', scheduleData);
-        return response.data;
+        const response = await apiService.post('/schedule/', scheduleData);
+        return response;
     },
 
     // --- Reading Analysis ---
     getReadingAnalyses: async (limit = 20) => {
-        // Assuming a reading analysis endpoint exists for orgs
-        // If not, we might need to mock or use a teacher/admin one
         try {
-            const response = await api.get(`/organization/reading-analyses?limit=${limit}`);
-            return response.data;
+            const response = await apiService.get(`/organization/reading-analyses`, { limit });
+            return response;
         } catch (e) {
             console.warn("Reading analysis endpoint not found, returning empty", e);
             return { analyses: [] };

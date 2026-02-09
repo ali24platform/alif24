@@ -49,8 +49,10 @@ class AuthService {
    * @returns {Promise<Object>} Updated profile
    */
   async updateProfile(updates) {
-    const response = await apiService.put('/auth/profile', updates);
-    return response.data;
+    // TODO: Backend PUT /auth/profile endpoint does not exist yet.
+    // When implementing, create the endpoint in backend/app/api/v1/auth.py
+    // For now, we re-fetch the profile after any updates made via other services.
+    throw new Error('Profile update endpoint not yet implemented. Use specific profile services instead.');
   }
 
   /**

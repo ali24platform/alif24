@@ -1,5 +1,6 @@
 import sys
 import traceback
+import os
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -21,8 +22,38 @@ try:
     from app.middleware.error_handler import error_handler
     from app.core.errors import AppError
 
-    # Rate limiter setup
-    limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
+    # ============================================================
+    # Rate Limiter Setup
+    # 
+    # FIX: In-memory rate limiting is USELESS on Vercel Serverless
+    # because each request runs in an isolated process with no
+    # shared memory. Every invocation starts fresh → rate limits
+    # never accumulate → valid users can get randomly blocked/unblocked.
+    #
+    # Solution: Detect VERCEL env and disable rate limiting entirely.
+    # When Redis is available, set REDIS_URL env var to enable real
+    # distributed rate limiting across all serverless instances.
+    # ============================================================
+    IS_SERVERLESS = bool(os.getenv("VERCEL"))
+    REDIS_URL = os.getenv("REDIS_URL")
+
+    if REDIS_URL:
+        # Best option: Redis-backed rate limiting (works across instances)
+        limiter = Limiter(
+            key_func=get_remote_address,
+            default_limits=["100/minute"],
+            storage_uri=REDIS_URL
+        )
+    elif IS_SERVERLESS:
+        # Serverless without Redis: disable rate limiting entirely
+        # A no-op limiter that never blocks anyone
+        limiter = Limiter(
+            key_func=get_remote_address,
+            default_limits=[]  # Empty = no limits applied
+        )
+    else:
+        # Local development: in-memory rate limiting works fine
+        limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):

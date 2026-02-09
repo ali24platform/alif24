@@ -1,12 +1,24 @@
 /**
- * Guest Session Service - Frontend API for guest tracking
+ * Guest Session Service - Frontend API for guest (unauthenticated) user tracking
  * 
- * FIXED: Was using raw axios with hardcoded localhost URL and had
- * an infinite retry loop on 404. Now uses correct base URL and
- * limits retries to prevent browser freeze.
+ * FIX #1: REMOVED raw axios import — was the ONLY service using axios directly,
+ *         creating an inconsistency with all other services that use fetch via apiService.
+ *         Now uses native fetch() with proper error handling.
+ * 
+ * FIX #2: FIXED hardcoded fallback URL — was 'http://localhost:8000/api' (wrong path, 
+ *         missing /v1, and hardcoded to localhost). Now uses VITE_API_URL || '/api/v1'
+ *         which matches apiService.js and works on any domain.
+ * 
+ * FIX #3: FIXED infinite recursion loop — trackContentAccess() called itself on 404
+ *         with NO exit condition, causing browser tab to freeze/crash.
+ *         Now has a MAX_RETRIES = 3 limit with a counter parameter.
  */
 
+// FIX #2: Use the same env variable as apiService.js, with relative path fallback
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
+// FIX #3: Maximum number of retries for session recreation
+const MAX_RETRIES = 3;
 
 class GuestSessionService {
   constructor() {
@@ -15,16 +27,24 @@ class GuestSessionService {
   }
 
   /**
-   * Get auth headers (guest sessions don't need auth, but include if available)
+   * Get standard headers for guest API requests
+   * (No auth token needed — these are unauthenticated guest endpoints)
    */
   getHeaders() {
     return { 'Content-Type': 'application/json' };
   }
 
   /**
-   * Make a fetch request with proper error handling
+   * Centralized fetch wrapper with proper error handling
+   * FIX #1: Replaces raw axios calls with native fetch
+   * 
+   * @param {string} method - HTTP method
+   * @param {string} endpoint - API endpoint path
+   * @param {Object|null} body - Request body (for POST/PUT)
+   * @returns {Promise<Object>} Parsed JSON response
    */
   async request(method, endpoint, body = null) {
+    // Handle both absolute and relative base URLs
     const baseUrl = API_URL.startsWith('http')
       ? API_URL
       : `${window.location.origin}${API_URL}`;
@@ -51,7 +71,8 @@ class GuestSessionService {
   }
 
   /**
-   * Generate browser fingerprint (simple version)
+   * Generate a simple browser fingerprint for guest identification
+   * Used to link guest sessions across page reloads
    */
   generateFingerprint() {
     const nav = window.navigator;
@@ -67,6 +88,7 @@ class GuestSessionService {
       !!window.localStorage,
     ].join('|');
 
+    // Simple hash function — produces consistent fingerprint
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
@@ -76,14 +98,24 @@ class GuestSessionService {
     return hash.toString(36);
   }
 
+  /**
+   * Get stored session token from localStorage
+   */
   getSessionToken() {
     return localStorage.getItem(this.SESSION_KEY);
   }
 
+  /**
+   * Store session token in localStorage
+   */
   setSessionToken(token) {
     localStorage.setItem(this.SESSION_KEY, token);
   }
 
+  /**
+   * Get or create browser fingerprint
+   * Creates on first call, then caches in localStorage
+   */
   getFingerprint() {
     let fingerprint = localStorage.getItem(this.FINGERPRINT_KEY);
     if (!fingerprint) {
@@ -94,7 +126,8 @@ class GuestSessionService {
   }
 
   /**
-   * Create or get guest session
+   * Create a new guest session or retrieve existing one
+   * @returns {Promise<{session_token: string, message: string}>}
    */
   async createSession() {
     try {
@@ -109,13 +142,23 @@ class GuestSessionService {
   }
 
   /**
-   * Track content access
-   * FIXED: Added retry limit to prevent infinite recursion
+   * Track content access by guest user
+   * 
+   * FIX #3: Added retryCount parameter with MAX_RETRIES limit.
+   * OLD CODE (BROKEN): On 404, called this.trackContentAccess() with no limit
+   *   → infinite recursion → browser crash
+   * NEW CODE: Tracks retry count, stops after MAX_RETRIES attempts
+   * 
+   * @param {string} contentType - 'harf', 'rharf', 'math', etc.
+   * @param {string} contentId - Letter ID, game ID, etc.
+   * @param {number} retryCount - Internal counter, DO NOT pass manually
+   * @returns {Promise<{requires_login: boolean, content_accessed_count: number}>}
    */
-  async trackContentAccess(contentType, contentId, _retried = false) {
+  async trackContentAccess(contentType, contentId, retryCount = 0) {
     try {
       let sessionToken = this.getSessionToken();
 
+      // If no session exists, create one first
       if (!sessionToken) {
         const sessionData = await this.createSession();
         sessionToken = sessionData.session_token;
@@ -131,18 +174,21 @@ class GuestSessionService {
     } catch (error) {
       console.error('Error tracking content access:', error);
 
-      // If session not found, create new one and retry ONCE (not infinitely)
-      if (error.status === 404 && !_retried) {
+      // FIX #3: If session not found (404), clear stale token and retry
+      // BUT only up to MAX_RETRIES times to prevent infinite loop
+      if (error.status === 404 && retryCount < MAX_RETRIES) {
         localStorage.removeItem(this.SESSION_KEY);
-        return this.trackContentAccess(contentType, contentId, true);
+        return this.trackContentAccess(contentType, contentId, retryCount + 1);
       }
 
+      // After MAX_RETRIES, give up and throw
       throw error;
     }
   }
 
   /**
-   * Check session status
+   * Check current guest session status
+   * @returns {Promise<{exists: boolean, requires_login: boolean, content_accessed_count: number}>}
    */
   async checkSessionStatus() {
     try {
@@ -168,7 +214,11 @@ class GuestSessionService {
   }
 
   /**
-   * Convert guest session to user account after registration/login
+   * Convert guest session to registered user account
+   * Called after successful registration/login to preserve guest activity data
+   * 
+   * @param {string} userId - User ID from backend after registration
+   * @returns {Promise<boolean>} Whether conversion succeeded
    */
   async convertToUser(userId) {
     try {
@@ -177,6 +227,7 @@ class GuestSessionService {
 
       await this.request('POST', `/guest/convert/${sessionToken}?user_id=${userId}`);
 
+      // Clear guest session after successful conversion
       localStorage.removeItem(this.SESSION_KEY);
       return true;
     } catch (error) {
@@ -185,6 +236,9 @@ class GuestSessionService {
     }
   }
 
+  /**
+   * Clear guest session (on logout or manual reset)
+   */
   clearSession() {
     localStorage.removeItem(this.SESSION_KEY);
   }

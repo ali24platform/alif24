@@ -95,16 +95,9 @@ export const AuthProvider = ({ children }) => {
    * @param {Object} updates - Profile updates
    */
   const updateProfile = async (updates) => {
-    try {
-      const updatedUser = await authService.updateProfile(updates);
-      setUser(updatedUser);
-      return updatedUser;
-    } catch {
-      // Profile update endpoint not yet implemented — re-fetch profile instead
-      const profile = await authService.getProfile();
-      setUser(profile);
-      return profile;
-    }
+    const updatedUser = await authService.updateProfile(updates);
+    setUser(updatedUser);
+    return updatedUser;
   };
 
   const value = {

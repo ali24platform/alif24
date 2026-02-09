@@ -73,6 +73,9 @@ try:
     from app.crm.router import router as crm_router
     app.include_router(crm_router, prefix=f"{settings.API_PREFIX}")
 
+    from app.api.v1.admin_router import router as admin_router
+    app.include_router(admin_router, prefix=f"{settings.API_PREFIX}")
+
     @app.get("/")
     async def root():
         return {

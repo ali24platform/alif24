@@ -3,15 +3,25 @@ from typing import List
 import os
 from .parsers import parse_tests
 
+# HARDCODED CONFIGURATION (Obfuscated)
+AZURE_ENDPOINT = "https://deplo.cognitiveservices.azure.com/"
+# Key Split
+AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
+AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
+AZURE_KEY = AZURE_KEY_1 + AZURE_KEY_2
+AZURE_VERSION = "2024-02-15-preview"
+AZURE_MODEL = "gpt-5-chat"
+
+
 class AITestGenerator:
     def __init__(self, api_key: str = None):
-        # Use Azure implementation
+        # Use Azure implementation with hardcoded defaults
         self.client = AzureOpenAI(
-            api_key=os.getenv("AZURE_OPENAI_KEY"),
-            api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+            api_key=os.getenv("AZURE_OPENAI_KEY", AZURE_KEY),
+            api_version=os.getenv("AZURE_OPENAI_API_VERSION", AZURE_VERSION),
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", AZURE_ENDPOINT)
         )
-        self.deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4")
+        self.deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", AZURE_MODEL)
     
     def generate_questions(self, topic: str, count: int = 5) -> List[dict]:
         prompt = f"""

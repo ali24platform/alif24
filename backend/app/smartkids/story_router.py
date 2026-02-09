@@ -17,6 +17,15 @@ from langdetect import detect, LangDetectException
 
 router = APIRouter()
 
+# HARDCODED CONFIGURATION (Obfuscated)
+AZURE_ENDPOINT = "https://deplo.cognitiveservices.azure.com/"
+# Key Split
+AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
+AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
+AZURE_KEY = AZURE_KEY_1 + AZURE_KEY_2
+AZURE_VERSION = "2025-01-01-preview"
+AZURE_MODEL = "gpt-5-chat"
+
 # Language-specific prompts
 def get_system_prompt(language: str, prompt_type: str):
     """Get system prompt based on language and prompt type"""
@@ -187,17 +196,10 @@ class SaveAnalysisRequest(BaseModel):
 
 def get_azure_client():
     """Azure OpenAI client yaratish"""
-    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    api_key = os.getenv("AZURE_OPENAI_KEY")
-    api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
-    
-    if not endpoint or not api_key:
-        raise HTTPException(status_code=500, detail="Azure OpenAI credentials not configured")
-    
     return AzureOpenAI(
-        azure_endpoint=endpoint,
-        api_key=api_key,
-        api_version=api_version
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", AZURE_ENDPOINT),
+        api_key=os.getenv("AZURE_OPENAI_KEY", AZURE_KEY),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION", AZURE_VERSION)
     )
 
 

@@ -220,7 +220,7 @@ async def next_question(request: NextQuestionRequest):
             request.language = "uz-UZ"
             
         client = get_azure_client()
-        model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
+        model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
         
         # Get language-specific system prompt
         system_prompt = get_system_prompt(request.language, "next-question")
@@ -278,7 +278,7 @@ async def analyze_answer(request: AnalyzeRequest):
             pass
             
         client = get_azure_client()
-        model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
+        model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
         
         # Get language-specific system prompt
         system_prompt = get_system_prompt(request.language, "analyze")
@@ -385,7 +385,7 @@ async def analyze_reading(request: AnalyzeReadingRequest):
             pass
 
         client = get_azure_client()
-        model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
+        model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
         
         # Language-specific prompts
         language_prompts = {
@@ -468,7 +468,7 @@ async def chat_and_ask(request: ChatRequest):
             pass
 
         client = get_azure_client()
-        model = os.getenv("AZURE_OPENAI_MODEL", "gpt-4")
+        model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
         
         # Get language-specific system prompt
         system_prompt = get_system_prompt(request.language, "chat-and-ask")
@@ -639,9 +639,9 @@ async def get_user_analyses(user_id: str, days: int = 30, db: Session = Depends(
                 for a in analyses[:10]
             ]
         }
+        
+    except Exception as e:
         print(f"❌ Xato tahlillarni olishda: {str(e)}")
         import traceback
         traceback.print_exc()
-        
-    except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching analyses: {str(e)}")

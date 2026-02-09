@@ -11,7 +11,6 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     
     # Database
-    # Database
     DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: int = int(os.getenv("DB_PORT", 5432))
@@ -43,7 +42,7 @@ class Settings(BaseSettings):
     AZURE_OPENAI_API_VERSION: str = "2025-01-01-preview"
     
     # Logging
-    LOG_LEVEL: str = "info"  # Production: faqat ERROR va yuqori
+    LOG_LEVEL: str = "info"
     
     # CORS
     CORS_ORIGINS: str = "*"
@@ -75,7 +74,6 @@ class Settings(BaseSettings):
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
         
     class Config:
-        # .env faylini backend papkasidan qidirish
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
@@ -83,32 +81,22 @@ class Settings(BaseSettings):
     
     @property
     def get_database_url(self) -> str:
-        # If DATABASE_URL is provided directly (standard for Docker/hardcoded), use it
         url = self.DATABASE_URL
         
-        # FIX: Vercel serverless functions often don't support IPv6 outbound, but Supabase DNS returns IPv6 first.
-        # We must resolve the hostname to an IPv4 address manually to prevent "Cannot assign requested address" errors.
         try:
             if url:
-                # Remove 'supa' parameter if present (not supported by psycopg2)
                 if "supa=" in url or "sslmode=" in url:
                     from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
                     
                     parsed = urlparse(url)
                     query_dict = parse_qs(parsed.query)
                     
-                    # Remove unsupported 'supa' param
                     if 'supa' in query_dict:
                         del query_dict['supa']
                     
-                    # Ensure sslmode is require (Postgres usually requires it on cloud)
-                    # But if it's already in query, we might want to keep it or normalize it.
-                    # psycopg2 expects sslmode in kwargs or query.
-                    # Let's keep it if present, or add it if missing for supabase.
                     if 'sslmode' not in query_dict:
                          query_dict['sslmode'] = ['require']
                     
-                    # Reconstruct query
                     new_query = urlencode(query_dict, doseq=True)
                     parsed = parsed._replace(query=new_query)
                     url = urlunparse(parsed)
@@ -122,7 +110,6 @@ class Settings(BaseSettings):
                 return url.replace("postgres://", "postgresql://", 1)
              return url
 
-        # PostgreSQL (default) - Fallback for local dev
         dialect = "postgresql" if self.DB_DIALECT in ("postgresql", "postgres") else self.DB_DIALECT
         password_part = f":{self.DB_PASSWORD}" if self.DB_PASSWORD else ""
         return f"{dialect}://{self.DB_USER}{password_part}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
@@ -141,14 +128,11 @@ class Settings(BaseSettings):
 
 import logging
 
-# Configure local logger for settings
 logger = logging.getLogger(__name__)
 
-# Settings obyektini yaratish
 try:
     settings = Settings()
     logger.info(f"✅ Settings loaded from: {os.path.abspath('.env')}")
 except Exception as e:
     logger.error(f"❌ Error loading settings: {e}")
-    # Fallback settings
     settings = Settings(_env_file=None)

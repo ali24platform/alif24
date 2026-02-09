@@ -34,7 +34,7 @@ class Lead(Base):
     # Foreign Keys - Changed to UUID
     # Foreign Keys - Changed to UUID
     assigned_to_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organization_profiles.id"), nullable=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organization_profiles.id", ondelete="CASCADE"), nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

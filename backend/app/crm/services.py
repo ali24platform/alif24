@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, desc
 from datetime import datetime
 from uuid import UUID
@@ -29,7 +29,8 @@ class CRMService:
         return lead
 
     def get_leads(self, filter_in: LeadFilter, skip: int = 0, limit: int = 100) -> List[Lead]:
-        query = self.db.query(Lead)
+        # FIX: N+1 Problem solved with joinedload(Lead.activities)
+        query = self.db.query(Lead).options(joinedload(Lead.activities))
 
         if filter_in.status:
             query = query.filter(Lead.status == filter_in.status)
@@ -50,7 +51,8 @@ class CRMService:
         return query.order_by(desc(Lead.created_at)).offset(skip).limit(limit).all()
 
     def get_lead(self, lead_id: int) -> Lead:
-        lead = self.db.query(Lead).filter(Lead.id == lead_id).first()
+        # FIX: Optimized single lead fetch too
+        lead = self.db.query(Lead).options(joinedload(Lead.activities)).filter(Lead.id == lead_id).first()
         if not lead:
             raise NotFoundError("Lead topilmadi")
         return lead

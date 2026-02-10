@@ -189,3 +189,6 @@ __all__ = [
 # NEW: Daily Quiz Models
 from app.models.quiz import QuizQuestion, QuizAttempt
 
+# NEW: AI Cache Model
+from app.models.ai_cache import AICache
+

@@ -1,6 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
+import os
 from app.core.config import settings
 from app.core.logging import logger
 
@@ -12,6 +14,14 @@ engine_args = {
 
 if "sqlite" in url:
     connect_args = {"check_same_thread": False}
+elif os.getenv("VERCEL") or os.getenv("SERVERLESS"):
+    # Serverless optimization: Disable pooling to prevent "too many clients" error
+    # Supabase/Postgres has a hard limit on connections. Lambdas often exhaust this.
+    engine_args["poolclass"] = NullPool
+    # Remove pool settings that don't apply to NullPool
+    engine_args.pop("pool_size", None)
+    engine_args.pop("max_overflow", None)
+    engine_args.pop("pool_pre_ping", None)
 else:
     engine_args["pool_pre_ping"] = True
     engine_args["pool_size"] = 10

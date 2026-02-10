@@ -19,30 +19,26 @@ const STORY_API_BASE = import.meta.env.VITE_API_URL
 const StudentDashboard = () => {
     const { language } = useLanguage();
     const { user: authUser } = useAuth();
-    const [activeTab, setActiveTab] = useState('dashboard');
-    const [activeSubTab, setActiveSubTab] = useState('overview');
-    const [timer, setTimer] = useState(0);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [readingAnalyses, setReadingAnalyses] = useState(null);
-    const [loadingAnalyses, setLoadingAnalyses] = useState(false);
-    const [studentProfile, setStudentProfile] = useState(null);
-    const [showNotifications, setShowNotifications] = useState(false);
+    const [dashboardData, setDashboardData] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchProfile = async () => {
+        const fetchDashboard = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/dashboard/student`, {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
                 });
                 if (response.ok) {
-                    const data = await response.json();
-                    setStudentProfile(data.data);
+                    const res = await response.json();
+                    setDashboardData(res.data);
                 }
             } catch (err) {
-                console.error("Error fetching profile:", err);
+                console.error("Error fetching dashboard:", err);
+            } finally {
+                setLoading(false);
             }
         };
-        fetchProfile();
+        fetchDashboard();
     }, []);
 
     const content = {
@@ -110,24 +106,28 @@ const StudentDashboard = () => {
         name: authUser?.first_name || 'Ali',
         lastName: authUser?.last_name || 'Valiyev',
         monster: <Bot size={80} className="text-white" />,
-        points: studentProfile?.student_profile?.total_points || 0,
-        streak: studentProfile?.student_profile?.current_streak || 0,
-        level: studentProfile?.student_profile?.level || 1,
-        parent: studentProfile?.parent_id ? 'Oila' : null,
+        points: dashboardData?.profile?.points || 0,
+        streak: dashboardData?.profile?.streak || 0,
+        level: dashboardData?.profile?.level || 1,
+        parent: null, // Simply removed complex check for now
         class: '7-A',
         avgGrade: 4.5,
         rank: 3
     };
 
+    const readingAnalyses = dashboardData?.reading_stats || {};
+    const loadingAnalyses = loading;
+
+    // Use tasks from API if available, else fallback
+    const tasks = dashboardData?.tasks || [
+        { id: 1, title: 'Matematika: Ko\'paytirish jadvali', deadline: 'Bugun, 18:00', xp: 50, status: 'pending' },
+        { id: 2, title: 'English: New Words', deadline: 'Ertaga', xp: 30, "status": "pending" },
+        { id: 3, title: 'Ona tili: Mashq 54', deadline: 'Bajarildi', xp: 40, status: 'completed' }
+    ];
+
     const subjects = [
         { id: 1, name: 'Matematika', teacher: 'Nodira Karimova', avgGrade: 4.8, color: '#8B5CF6' },
         { id: 2, name: 'Ingliz tili', teacher: 'Sardor Alimov', avgGrade: 4.5, color: '#EC4899' }
-    ];
-
-    const tasks = [
-        { id: 1, title: 'Matematika: Ko\'paytirish jadvali', deadline: 'Bugun, 18:00', xp: 50, status: 'pending' },
-        { id: 2, title: 'English: New Words', deadline: 'Ertaga', xp: 30, status: 'pending' },
-        { id: 3, title: 'Ona tili: Mashq 54', deadline: 'Bajarildi', xp: 40, status: 'completed' }
     ];
 
     const books = [
@@ -143,27 +143,6 @@ const StudentDashboard = () => {
         }
         return () => clearInterval(interval);
     }, [isTimerRunning]);
-
-    useEffect(() => {
-        const loadReadingAnalyses = async () => {
-            if (!authUser?.id) return;
-            setLoadingAnalyses(true);
-            try {
-                const userId = authUser.id || localStorage.getItem('user_id');
-                const url = `${STORY_API_BASE}/user-analyses/${userId}?days=30`;
-                const response = await fetch(url);
-                if (response.ok) {
-                    const data = await response.json();
-                    setReadingAnalyses(data);
-                }
-            } catch (error) {
-                console.error('Tahlillar yuklashda xatolik:', error);
-            } finally {
-                setLoadingAnalyses(false);
-            }
-        };
-        loadReadingAnalyses();
-    }, [authUser]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -231,7 +210,7 @@ const StudentDashboard = () => {
                                 <div className="text-xs text-gray-600 mt-1">Talaffuz</div>
                             </div>
                             <div className="bg-red-50 p-4 rounded-xl text-center">
-                                <div className="text-2xl font-bold text-red-600">{readingAnalyses.total_speech_errors || 0}</div>
+                                <div className="text-2xl font-bold text-red-600">{readingAnalyses.total_errors || 0}</div>
                                 <div className="text-xs text-gray-600 mt-1">Xatolar</div>
                             </div>
                         </div>

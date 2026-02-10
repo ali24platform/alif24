@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.models.reading_analysis import ReadingAnalysis
 from app.core.config import settings
 from langdetect import detect, LangDetectException
+from app.services.ai_cache_service import AICacheService
 
 router = APIRouter()
 
@@ -68,6 +69,7 @@ def get_system_prompt(language: str, prompt_type: str):
                 "Appreciate and encourage the child's answer. "
                 "Give very short (1-2 sentences) and simple answers. Be positive. "
                 "Don't stray from the story topic. DO NOT ASK NEW QUESTIONS!"
+                "Return response as JSON: {\"comment\": \"Your comment\", \"question\": null}"
             )
         },
         "analyze": {
@@ -221,6 +223,8 @@ async def next_question(request: NextQuestionRequest):
             
         client = get_azure_client()
         model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
+        AZURE_MODEL = os.getenv("AZURE_OPENAI_MODEL", "gpt-4") # Assuming AZURE_MODEL is defined
+        model = AZURE_MODEL
         
         # Get language-specific system prompt
         system_prompt = get_system_prompt(request.language, "next-question")

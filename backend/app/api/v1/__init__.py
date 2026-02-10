@@ -2,10 +2,11 @@ from fastapi import APIRouter
 from app.api.v1 import auth, users, students, lessons, games, profiles, avatars, teacher_tests, rbac_endpoints
 from app.api.v1 import verification
 
-from app.api.v1.endpoints import testai, notification, organization_structure, schedule, olympiad, coins, live_quiz, student_lesson_router
+from app.api.v1.endpoints import testai, notification, organization_structure, schedule, olympiad, coins, live_quiz, student_lesson_router, dashboard
 
 router = APIRouter()
 
+router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 router.include_router(auth.router, prefix="/auth", tags=["auth"])
 router.include_router(users.router, prefix="/users", tags=["users"])
 router.include_router(students.router, prefix="/students", tags=["students"])

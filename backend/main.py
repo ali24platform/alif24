@@ -62,10 +62,28 @@ try:
         yield
         # Shutdown: Clean up resources if needed
 
+    tags_metadata = [
+        {"name": "auth", "description": "Authentication (Login, Register, Refresh Token)"},
+        {"name": "students", "description": "Student Operations & Dashboard"},
+        {"name": "smartkids", "description": "AI-Powered Story & Reading Analysis"},
+        {"name": "dashboard", "description": "High-Performance Unified Dashboards"},
+        {"name": "admin", "description": "God Mode & Administrative Tools"},
+    ]
+
     app = FastAPI(
         title="Alif24 Platform API",
-        description="Backend API for Alif24 Platform",
-        version="1.0.0",
+        description="""
+        **Next-Gen AI LMS Platform API** 🚀
+        
+        Powered by FastAPI, Azure OpenAI, and Supabase.
+        
+        ## Features
+        * **SmartKids AI**: Generative stories and speech analysis.
+        * **Unified Dashboard**: Optimized aggregation for student stats.
+        * **God Mode**: Administrative oversight endpoints.
+        """,
+        version="2.0.0",
+        openapi_tags=tags_metadata,
         openapi_url=f"{settings.API_PREFIX}/openapi.json",
         lifespan=lifespan
     )

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -15,7 +15,9 @@ import {
   Home,
   FileText,
   Bell,
-  BarChart3
+  BarChart3,
+  Menu,
+  X
 } from 'lucide-react';
 
 const DashboardLayout = ({ children }) => {
@@ -23,6 +25,18 @@ const DashboardLayout = ({ children }) => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const getNavigation = () => {
     if (isSuperAdmin || isAdmin) {
@@ -124,25 +138,37 @@ const DashboardLayout = ({ children }) => {
   const roleInfo = getRoleInfo();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex relative">
+      {/* Mobile overlay */}
+      {isMobile && sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
-        <div className="p-6">
+      <div className={`fixed md:static top-0 left-0 h-full z-50 bg-white shadow-lg transition-transform duration-300 w-64 flex-shrink-0 ${
+        isMobile ? (sidebarOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'
+      }`}>
+        <div className="p-6 h-full flex flex-col">
           <div className="flex items-center gap-3 mb-8">
             <div className={`p-2 rounded-full ${roleInfo.color}`}>
               {roleInfo.icon}
             </div>
-            <div>
-              <div className="font-semibold text-gray-900">{user?.first_name} {user?.last_name}</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-gray-900 truncate">{user?.first_name} {user?.last_name}</div>
               <div className="text-sm text-gray-500">{roleInfo.label}</div>
             </div>
+            {isMobile && (
+              <button onClick={() => setSidebarOpen(false)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
-          <nav className="space-y-1">
+          <nav className="space-y-1 flex-1">
             {navigation.map((item, index) => (
               <button
                 key={index}
-                onClick={() => navigate(item.href)}
+                onClick={() => { navigate(item.href); if (isMobile) setSidebarOpen(false); }}
                 className={`flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg transition-colors ${
                   location.pathname === item.href
                     ? 'bg-indigo-50 text-indigo-700 font-medium'
@@ -154,28 +180,35 @@ const DashboardLayout = ({ children }) => {
               </button>
             ))}
           </nav>
-        </div>
 
-        <div className="absolute bottom-0 w-64 p-6 border-t">
-          <button
-            onClick={logout}
-            className="flex items-center gap-3 w-full px-4 py-3 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>{t('logout')}</span>
-          </button>
+          <div className="pt-4 border-t">
+            <button
+              onClick={logout}
+              className="flex items-center gap-3 w-full px-4 py-3 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>{t('logout')}</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="px-6 py-4 flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-900">
-              {roleInfo.label} paneli
-            </h1>
-            <div className="flex items-center gap-4">
+        <header className="bg-white shadow-sm border-b sticky top-0 z-30">
+          <div className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {isMobile && (
+                <button onClick={() => setSidebarOpen(true)} className="p-2 text-gray-600 hover:text-gray-900 rounded-lg hover:bg-gray-100">
+                  <Menu className="w-5 h-5" />
+                </button>
+              )}
+              <h1 className="text-lg md:text-xl font-semibold text-gray-900 truncate">
+                {roleInfo.label} paneli
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 md:gap-4">
               <button className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -192,7 +225,7 @@ const DashboardLayout = ({ children }) => {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 md:p-6">
           {children}
         </main>
       </div>

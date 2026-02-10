@@ -172,10 +172,10 @@ const StudentDashboard = () => {
     const renderDashboard = () => (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2 space-y-6">
-                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-3xl p-8 text-white flex justify-between items-center relative overflow-hidden">
-                    <div className="z-10">
-                        <div className="flex items-center gap-2 mb-2">
-                            <h2 className="text-3xl font-bold">{t.welcome}, {user.name}!</h2>
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl md:rounded-3xl p-5 md:p-8 text-white flex justify-between items-center relative overflow-hidden">
+                    <div className="z-10 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <h2 className="text-xl md:text-3xl font-bold">{t.welcome}, {user.name}!</h2>
                             <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm">Lvl {user.level}</span>
                         </div>
                         <p className="opacity-90 mb-6 flex items-center gap-2">
@@ -185,6 +185,7 @@ const StudentDashboard = () => {
                             Boshlash
                         </button>
                     </div>
+
                     <div className="relative z-10 animate-bounce">{user.monster}</div>
                 </div>
 
@@ -366,10 +367,10 @@ const StudentDashboard = () => {
                     {activeTab === 'dashboard' && renderDashboard()}
                     {activeTab === 'library' && renderLibrary()}
                     {activeTab === 'tasks' && (
-                        <div className="bg-white rounded-2xl p-6 shadow-sm">
-                            <h2 className="text-xl font-bold mb-6">Vazifalarim</h2>
+                        <div className="bg-white rounded-2xl p-4 md:p-6 shadow-sm">
+                            <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6">Vazifalarim</h2>
                             {tasks.map(task => (
-                                <div key={task.id} className="flex items-center justify-between p-4 border-b border-gray-100">
+                                <div key={task.id} className="flex items-center justify-between p-3 md:p-4 border-b border-gray-100 gap-3">
                                     <div>
                                         <h4 className={`font-bold ${task.status === 'completed' ? 'text-gray-400' : 'text-gray-800'}`}>{task.title}</h4>
                                         <p className="text-sm text-gray-500">{task.deadline}</p>
@@ -389,7 +390,7 @@ const StudentDashboard = () => {
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {achievements.map(ach => (
-                                    <div key={ach.id} className={`bg-white p-6 rounded-2xl text-center shadow-sm flex flex-col items-center transition-all ${ach.earned ? 'border-2 border-yellow-300 shadow-yellow-100' : 'opacity-50 grayscale'}`}>
+                                    <div key={ach.id} className={`bg-white p-4 md:p-6 rounded-2xl text-center shadow-sm flex flex-col items-center transition-all ${ach.earned ? 'border-2 border-yellow-300 shadow-yellow-100' : 'opacity-50 grayscale'}`}>
                                         <div className={`mb-3 p-3 rounded-full ${ach.earned ? 'bg-yellow-50' : 'bg-gray-100'}`}>{ach.icon}</div>
                                         <h3 className="font-bold text-gray-800 text-sm">{ach.title}</h3>
                                         <p className="text-xs text-gray-500 mt-1">{ach.desc}</p>

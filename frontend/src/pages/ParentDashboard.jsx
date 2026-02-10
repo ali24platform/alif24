@@ -195,11 +195,11 @@ const ParentDashboard = () => {
 
     const renderPayments = () => (
         <div className="max-w-4xl">
-            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl p-8 text-white mb-8 shadow-lg shadow-indigo-200">
-                <p className="opacity-80 mb-2 font-medium">{t.payments.balance}</p>
-                <div className="flex justify-between items-end">
-                    <h2 className="text-4xl font-bold">145,000 UZS</h2>
-                    <button className="bg-white text-indigo-600 px-6 py-2.5 rounded-xl font-bold shadow-sm hover:scale-105 transition-transform flex items-center gap-2">
+            <div className="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl p-5 md:p-8 text-white mb-6 md:mb-8 shadow-lg shadow-indigo-200">
+                <p className="opacity-80 mb-2 font-medium text-sm md:text-base">{t.payments.balance}</p>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
+                    <h2 className="text-2xl md:text-4xl font-bold">145,000 UZS</h2>
+                    <button className="bg-white text-indigo-600 px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-bold shadow-sm hover:scale-105 transition-transform flex items-center gap-2 text-sm md:text-base">
                         <CreditCard size={18} /> {t.payments.pay}
                     </button>
                 </div>
@@ -229,7 +229,8 @@ const ParentDashboard = () => {
         <>
             <Navbar />
             <div className="min-h-screen bg-gray-50/50 flex flex-col md:flex-row pt-[70px]">
-                <aside className="w-full md:w-64 bg-white border-r border-gray-200 p-6 flex-shrink-0">
+                {/* Desktop sidebar */}
+                <aside className="hidden md:block w-64 bg-white border-r border-gray-200 p-6 flex-shrink-0">
                     <div className="flex items-center gap-3 mb-8 px-2">
                         <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-lg">
                             {authUser?.first_name?.[0]}{authUser?.last_name?.[0]}
@@ -256,7 +257,23 @@ const ParentDashboard = () => {
                     </nav>
                 </aside>
 
-                <main className="flex-1 p-6 md:p-10 overflow-x-hidden">
+                {/* Mobile horizontal tab bar */}
+                <div className="md:hidden bg-white border-b border-gray-200 flex overflow-x-auto no-scrollbar">
+                    {[
+                        { key: 'dashboard', icon: <Users size={18} />, label: t.tabs.dashboard },
+                        { key: 'payments', icon: <CreditCard size={18} />, label: t.tabs.payments },
+                        { key: 'notifications', icon: <Bell size={18} />, label: t.tabs.notifications },
+                        { key: 'settings', icon: <Settings size={18} />, label: t.tabs.settings }
+                    ].map(tab => (
+                        <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                            className={`flex items-center gap-2 px-4 py-3 whitespace-nowrap text-sm font-medium border-b-2 transition-all flex-1 justify-center ${activeTab === tab.key ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500'}`}>
+                            {tab.icon}
+                            <span className="hidden sm:inline">{tab.label}</span>
+                        </button>
+                    ))}
+                </div>
+
+                <main className="flex-1 p-4 md:p-10 overflow-x-hidden">
                     {activeTab === 'dashboard' && renderDashboard()}
                     {activeTab === 'payments' && renderPayments()}
 

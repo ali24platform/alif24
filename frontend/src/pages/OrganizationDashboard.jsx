@@ -209,18 +209,18 @@ const OrganizationDashboard = () => {
             {/* Header */}
             <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Ta’lim tashkiloti Paneli</h1>
-                            <p className="text-sm text-gray-600">{user?.first_name} {user?.last_name} | {user?.email}</p>
+                    <div className="flex justify-between items-center gap-3">
+                        <div className="min-w-0">
+                            <h1 className="text-lg md:text-2xl font-bold text-gray-900 truncate">Ta'lim tashkiloti Paneli</h1>
+                            <p className="text-xs md:text-sm text-gray-600 truncate">{user?.first_name} {user?.last_name} <span className="hidden sm:inline">| {user?.email}</span></p>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2 flex-shrink-0">
                             <button
                                 onClick={loadData}
-                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                                className="px-3 md:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2 text-sm"
                             >
                                 <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                                Yangilash
+                                <span className="hidden sm:inline">Yangilash</span>
                             </button>
                         </div>
                     </div>
@@ -232,7 +232,7 @@ const OrganizationDashboard = () => {
                 {/* Tabs */}
                 <div className="bg-white rounded-lg shadow-sm mb-6 sticky top-20 z-20">
                     <div className="border-b border-gray-200">
-                        <nav className="flex gap-8 px-6 overflow-x-auto no-scrollbar">
+                        <nav className="flex gap-4 md:gap-8 px-3 md:px-6 overflow-x-auto no-scrollbar">
                             {[
                                 { key: 'stats', label: 'Statistika', icon: TrendingUp },
                                 { key: 'crm', label: 'CRM / Lidlar', icon: MessageSquare },
@@ -285,7 +285,7 @@ const OrganizationDashboard = () => {
                         {stats && (
                             <div className="space-y-6 animate-fadeIn">
                                 {/* Summary Cards */}
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                                     <StatCard label="Jami O'quvchilar" value={stats.total_students} icon={<Users />} color="blue" />
                                     <StatCard label="Jami Lidlar" value={stats.total_leads} icon={<TrendingUp />} color="orange" />
                                     <StatCard label="O'qituvchilar" value={stats.total_teachers} icon={<BookOpen />} color="purple" />
@@ -537,12 +537,12 @@ const OrganizationDashboard = () => {
                 {/* --- USERS TAB --- */}
                 {activeTab === 'users' && (
                     <div className="bg-white rounded-lg shadow-sm animate-fadeIn">
-                        <div className="p-6 border-b border-gray-200">
-                            <div className="flex justify-between items-center mb-4">
+                        <div className="p-4 md:p-6 border-b border-gray-200">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                                 <h2 className="text-lg font-bold">Foydalanuvchilar</h2>
                                 <button
                                     onClick={() => setShowInviteStudentModal(true)}
-                                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 transition"
+                                    className="bg-green-600 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2 transition text-sm"
                                 >
                                     <Plus size={18} /> O'quvchi Taklif Qilish
                                 </button>
@@ -842,13 +842,13 @@ const StatCard = ({ label, value, icon, color }) => {
     };
 
     return (
-        <div className={`rounded-xl p-6 ${colorClasses[color]} transition-transform hover:-translate-y-1`}>
-            <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-white/50 rounded-lg">{icon}</div>
-                <span className="text-xs font-semibold uppercase tracking-wider opacity-70">Statistika</span>
+        <div className={`rounded-xl p-4 md:p-6 ${colorClasses[color]} transition-transform hover:-translate-y-1`}>
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+                <div className="p-2 md:p-3 bg-white/50 rounded-lg">{icon}</div>
+                <span className="text-[10px] md:text-xs font-semibold uppercase tracking-wider opacity-70">Statistika</span>
             </div>
-            <div className="text-3xl font-bold mb-1">{value}</div>
-            <div className="text-sm font-medium opacity-80">{label}</div>
+            <div className="text-2xl md:text-3xl font-bold mb-1">{value}</div>
+            <div className="text-xs md:text-sm font-medium opacity-80">{label}</div>
         </div>
     );
 };

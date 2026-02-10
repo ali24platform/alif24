@@ -14,7 +14,7 @@ const TeacherDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedClass, setSelectedClass] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -2022,6 +2022,7 @@ const TeacherDashboard = () => {
         @media (max-width: 768px) {
           .sidebar {
             transform: translateX(-100%);
+            z-index: 1001;
           }
 
           .sidebar.open {
@@ -2029,27 +2030,132 @@ const TeacherDashboard = () => {
           }
 
           .main-content {
-            margin-left: 0;
+            margin-left: 0 !important;
           }
 
           .stats-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
           }
 
-          .header {
+          .stat-card {
             padding: 16px;
           }
 
+          .stat-content h3 {
+            font-size: 22px;
+          }
+
+          .stat-icon {
+            width: 40px;
+            height: 40px;
+          }
+
+          .header {
+            padding: 12px 16px;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+
           .header h1 {
-            font-size: 20px;
+            font-size: 18px;
+          }
+
+          .header-right {
+            gap: 8px;
           }
 
           .search-box {
             display: none;
           }
 
+          .user-profile {
+            padding: 4px 8px;
+          }
+
+          .user-info {
+            display: none;
+          }
+
           .content-area, .students-view, .messages-view, .settings-view {
-            padding: 16px;
+            padding: 12px;
+          }
+
+          .content-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .classes-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .view-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .view-actions {
+            flex-direction: column;
+            width: 100%;
+          }
+
+          .students-table {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .students-table table {
+            min-width: 600px;
+          }
+
+          .messages-container {
+            grid-template-columns: 1fr;
+            height: auto;
+          }
+
+          .message-detail {
+            display: none;
+          }
+
+          .profile-content {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+
+          .profile-avatar-section {
+            flex-direction: row;
+            justify-content: center;
+          }
+
+          .profile-avatar-large {
+            width: 80px;
+            height: 80px;
+            font-size: 32px;
+            border-radius: 16px;
+          }
+
+          .card-header h2 {
+            font-size: 16px;
+          }
+
+          .btn-primary {
+            padding: 10px 16px;
+            font-size: 13px;
+          }
+
+          .settings-grid {
+            gap: 16px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .stats-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .header h1 {
+            font-size: 16px;
           }
         }
 
@@ -2075,6 +2181,10 @@ const TeacherDashboard = () => {
         .stat-card:nth-child(4) { animation-delay: 0.4s; }
       `}</style>
 
+      {sidebarOpen && window.innerWidth <= 768 && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000 }}
+          onClick={() => setSidebarOpen(false)} />
+      )}
       <Sidebar />
       <div className="main-content">
         <Header />

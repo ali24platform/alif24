@@ -194,10 +194,12 @@ const LessonBuilder = () => {
     };
 
     // Styles
+    const isMobileView = typeof window !== 'undefined' && window.innerWidth < 640;
+
     const containerStyle = {
         maxWidth: '800px',
         margin: '0 auto',
-        padding: '40px 20px',
+        padding: isMobileView ? '20px 12px' : '40px 20px',
         fontFamily: "'Inter', sans-serif"
     };
 
@@ -205,7 +207,7 @@ const LessonBuilder = () => {
         background: 'white',
         borderRadius: '16px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-        padding: '30px',
+        padding: isMobileView ? '16px' : '30px',
         marginBottom: '20px'
     };
 
@@ -236,7 +238,7 @@ const LessonBuilder = () => {
                     <button onClick={() => navigate(-1)} style={{ marginRight: '15px', background: 'none', border: 'none', cursor: 'pointer' }}>
                         <ArrowLeft size={24} color="#374151" />
                     </button>
-                    <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#111827' }}>Yangi dars yaratish</h1>
+                    <h1 style={{ fontSize: isMobileView ? '20px' : '28px', fontWeight: 'bold', color: '#111827' }}>Yangi dars yaratish</h1>
                 </div>
 
                 {/* Steps Indicator */}
@@ -282,7 +284,7 @@ const LessonBuilder = () => {
                             Asosiy ma'lumotlar
                         </h2>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1fr 1fr', gap: isMobileView ? '0' : '20px' }}>
                             <div>
                                 <label style={labelStyle}>Fan</label>
                                 <select
@@ -318,7 +320,7 @@ const LessonBuilder = () => {
                             style={inputStyle}
                         />
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobileView ? '1fr' : '1fr 1fr', gap: isMobileView ? '0' : '20px' }}>
                             <div>
                                 <label style={labelStyle}>Mavzu (UZ)</label>
                                 <input name="title_uz" value={lessonData.title_uz} onChange={handleLessonChange} style={inputStyle} placeholder="O'zbekcha nom" />

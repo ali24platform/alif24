@@ -2,27 +2,12 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Response
 from pydantic import BaseModel
 from typing import Optional
 import os
-try:
-    import azure.cognitiveservices.speech as speechsdk
-except ImportError:
-    speechsdk = None
+import requests
 import logging
+from app.core.config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-# HARDCODED CONFIGURATION (Obfuscated)
-# Speech Key Split
-AZURE_SPEECH_KEY_1 = "54V9TJPS3HtXlzdnmUY0sgRv6NtugLsgFcf2s3yZlwS0Ogint3u6JQQJ99BLACYeBj"
-AZURE_SPEECH_KEY_2 = "FXJ3w3AAAYACOGlQP9"
-AZURE_SPEECH_KEY_VAL = AZURE_SPEECH_KEY_1 + AZURE_SPEECH_KEY_2
-
-AZURE_SPEECH_REGION_VAL = "eastus"
-
-# OpenAI Key Split
-AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
-AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
-AZURE_OPENAI_KEY_VAL = AZURE_KEY_1 + AZURE_KEY_2
 
 
 class TTSRequest(BaseModel):
@@ -31,39 +16,16 @@ class TTSRequest(BaseModel):
     voice: Optional[str] = None
 
 VOICE_MAPPING = {
-    "uz-UZ": ["uz-UZ-MadinaNeural", "uz-UZ-SardorNeural"],
-    "ru-RU": ["ru-RU-DariyaNeural", "ru-RU-DmitryNeural"],
-    "en-US": ["en-US-JennyNeural", "en-US-GuyNeural"]
+    "uz-UZ": "uz-UZ-MadinaNeural",
+    "ru-RU": "ru-RU-DariyaNeural",
+    "en-US": "en-US-JennyNeural"
 }
 
-def get_voice_config(language, custom_voice=None):
-    """Get voice configuration for language"""
-    speech_key = os.getenv("AZURE_SPEECH_KEY", AZURE_SPEECH_KEY_VAL) or os.getenv("AZURE_OPENAI_KEY", AZURE_OPENAI_KEY_VAL)
-    
-    if not speech_key:
-        return None, "Azure Speech key not configured"
-    
-    if speechsdk is None:
-        return None, "Speech services are currently disabled on this server."
-
-    speech_config = speechsdk.SpeechConfig(
-        subscription=speech_key,
-        region=os.getenv("AZURE_SPEECH_REGION", AZURE_SPEECH_REGION_VAL)
-    )
-    speech_config.set_speech_synthesis_output_format(
-        speechsdk.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3
-    )
-    
-    # Select voice
+def get_voice_name(language, custom_voice=None):
+    """Get voice name for language"""
     if custom_voice:
-        voice_name = custom_voice
-    else:
-        voices = VOICE_MAPPING.get(language, [])
-        voice_name = voices[0] if voices else "en-US-JennyNeural"
-        
-    speech_config.speech_synthesis_voice_name = voice_name
-    
-    return speech_config, None
+        return custom_voice
+    return VOICE_MAPPING.get(language, "en-US-JennyNeural")
 
 @router.options("/tts")
 async def tts_options():
@@ -71,27 +33,40 @@ async def tts_options():
 
 @router.post("/tts")
 async def text_to_speech(request: TTSRequest):
-    """Unified Text to Speech endpoint"""
-    speech_config, error = get_voice_config(request.language, request.voice)
+    """Unified Text to Speech endpoint via REST API"""
+    speech_key = settings.AZURE_SPEECH_KEY
+    speech_region = settings.AZURE_SPEECH_REGION
     
-    if error:
-        raise HTTPException(status_code=501, detail=error)
-        
-    synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
+    if not speech_key:
+        raise HTTPException(status_code=501, detail="Azure Speech key not configured")
+    
+    voice_name = get_voice_name(request.language, request.voice)
+    
+    from xml.sax.saxutils import escape
+    escaped = escape(request.text)
+    ssml = f"""<speak version='1.0' xml:lang='{request.language}'>
+        <voice name='{voice_name}'>
+            <prosody rate='-20%'>{escaped}</prosody>
+        </voice>
+    </speak>"""
     
     try:
-        result = synthesizer.speak_text_async(request.text).get()
+        token_url = f"https://{speech_region}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
+        token_resp = requests.post(token_url, headers={"Ocp-Apim-Subscription-Key": speech_key})
+        token_resp.raise_for_status()
         
-        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            return Response(
-                content=bytes(result.audio_data),
-                media_type="audio/mpeg"
-            )
-        else:
-            raise HTTPException(status_code=500, detail=f"TTS Error: {result.error_details}")
-            
+        tts_url = f"https://{speech_region}.tts.speech.microsoft.com/cognitiveservices/v1"
+        tts_resp = requests.post(tts_url, headers={
+            "Authorization": f"Bearer {token_resp.text}",
+            "Content-Type": "application/ssml+xml",
+            "X-Microsoft-OutputFormat": "audio-16khz-128kbitrate-mono-mp3",
+            "User-Agent": "Alif24-Backend"
+        }, data=ssml.encode('utf-8'))
+        tts_resp.raise_for_status()
+        
+        return Response(content=tts_resp.content, media_type="audio/mpeg")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
 
 @router.options("/stt")
 async def stt_options():
@@ -103,27 +78,9 @@ async def speech_to_text(
     language: str = Form(...)
 ):
     """Unified Speech to Text endpoint"""
-    audio_data = await file.read()
-    
-    speech_config, error = get_voice_config(language)
-    if error:
-        raise HTTPException(status_code=501, detail=error)
-        
-    speech_config.speech_recognition_language = language
-    
-    audio_stream = speechsdk.audio.PushAudioInputStream()
-    audio_stream.write(audio_data)
-    audio_stream.close()
-    
-    audio_config = speechsdk.audio.AudioConfig(stream=audio_stream)
-    recognizer = speechsdk.SpeechRecognizer(
-        speech_config=speech_config,
-        audio_config=audio_config
+    # STT via REST API is not supported server-side without SDK.
+    # The frontend uses Azure Speech SDK directly via browser for STT.
+    raise HTTPException(
+        status_code=501,
+        detail="Server-side STT is disabled. Use browser-based Azure Speech SDK instead."
     )
-    
-    result = recognizer.recognize_once_async().get()
-    
-    if result.reason == speechsdk.ResultReason.RecognizedSpeech:
-        return {"text": result.text}
-    else:
-        return {"text": "", "error": getattr(result, "error_details", "Unknown error")}

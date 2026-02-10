@@ -2,18 +2,10 @@
 Azure Speech SDK Token endpoint
 """
 from fastapi import APIRouter, HTTPException
-import os
 import requests
+from app.core.config import settings
 
 router = APIRouter()
-
-# HARDCODED CONFIGURATION (Obfuscated)
-# Key Split
-AZURE_SPEECH_KEY_1 = "54V9TJPS3HtXlzdnmUY0sgRv6NtugLsgFcf2s3yZlwS0Ogint3u6JQQJ99BLACYeBj"
-AZURE_SPEECH_KEY_2 = "FXJ3w3AAAYACOGlQP9"
-AZURE_SPEECH_KEY_VAL = AZURE_SPEECH_KEY_1 + AZURE_SPEECH_KEY_2
-
-AZURE_SPEECH_REGION_VAL = "eastus"
 
 @router.get("/speech-token")
 async def get_speech_token():
@@ -22,8 +14,8 @@ async def get_speech_token():
     Frontend bu token bilan ishlatadi (key o'rniga)
     """
     try:
-        speech_key = os.getenv("AZURE_SPEECH_KEY", AZURE_SPEECH_KEY_VAL)
-        speech_region = os.getenv("AZURE_SPEECH_REGION", AZURE_SPEECH_REGION_VAL)
+        speech_key = settings.AZURE_SPEECH_KEY
+        speech_region = settings.AZURE_SPEECH_REGION
         
         if not speech_key:
             raise HTTPException(status_code=500, detail="AZURE_SPEECH_KEY not configured")

@@ -101,11 +101,6 @@ async def parse_file(
         print(f"Error parsing file: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
-# HARDCODED KEY (Obfuscated)
-_AZ_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
-_AZ_KEY_2 = "5XJ3w3AAABACOGUD56"
-_DEFAULT_AZURE_KEY = _AZ_KEY_1 + _AZ_KEY_2
-
 @router.post("/generate/ai")
 async def generate_ai_test(
     topic: str = Form(...),
@@ -114,9 +109,8 @@ async def generate_ai_test(
     current_user: User = Depends(get_current_user)
 ):
     """Generate tests using AI"""
-    import os
-    # Use provided key or fallback to env var or hardcoded default
-    actual_api_key = api_key or os.getenv("AZURE_OPENAI_KEY", _DEFAULT_AZURE_KEY)
+    from app.core.config import settings
+    actual_api_key = api_key or settings.AZURE_OPENAI_KEY
     
     try:
         # Pass None or the key, but generator now uses env vars primarily for Azure

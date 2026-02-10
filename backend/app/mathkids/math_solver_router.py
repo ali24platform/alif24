@@ -7,18 +7,15 @@ from typing import List, Optional, Dict
 from openai import AzureOpenAI
 import os
 import json
+from app.core.config import settings
 
 router = APIRouter()
 
-# HARDCODED CONFIGURATION (Obfuscated)
-AZURE_ENDPOINT = "https://deplo.cognitiveservices.azure.com/"
-# Key Split
-AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
-AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
-AZURE_KEY = AZURE_KEY_1 + AZURE_KEY_2
-
-AZURE_VERSION = "2025-01-01-preview"
-AZURE_MODEL = "gpt-5-chat"
+# Configuration from settings (env vars)
+AZURE_ENDPOINT = settings.AZURE_OPENAI_ENDPOINT
+AZURE_KEY = settings.AZURE_OPENAI_KEY
+AZURE_VERSION = settings.AZURE_OPENAI_API_VERSION
+AZURE_MODEL = settings.AZURE_OPENAI_DEPLOYMENT_NAME
 
 # Request models
 class SolveProblemRequest(BaseModel):

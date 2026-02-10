@@ -4,10 +4,8 @@ Unified Letters Learning Router - Supports Uzbek and Russian
 from fastapi import APIRouter, HTTPException, Response
 from pydantic import BaseModel
 import os
-try:
-    import azure.cognitiveservices.speech as speechsdk
-except ImportError:
-    speechsdk = None
+import requests as http_requests
+from xml.sax.saxutils import escape
 from app.core.config import settings
 
 router = APIRouter()
@@ -121,58 +119,50 @@ async def text_to_speech(request: TextToSpeechRequest):
     else:
         norm_text = request.text
     
-    # Configure Azure Speech
-    speech_key = (
-        settings.AZURE_SPEECH_KEY or 
-        settings.AZURE_OPENAI_KEY or 
-        os.getenv("AZURE_SPEECH_KEY") or 
-        os.getenv("AZURE_OPENAI_KEY")
-    )
+    # Configure Azure Speech via REST API
+    speech_key = settings.AZURE_SPEECH_KEY
+    speech_region = settings.AZURE_SPEECH_REGION
     
     if not speech_key:
         raise HTTPException(
-            status_code=500, 
+            status_code=501, 
             detail="Azure Speech key not configured"
         )
     
-    if speechsdk is None:
-        raise HTTPException(
-            status_code=501,
-            detail="Speech services are currently disabled on this server."
-        )
-
-    speech_config = speechsdk.SpeechConfig(
-        subscription=speech_key,
-        region=settings.AZURE_SPEECH_REGION
-    )
-    speech_config.set_speech_synthesis_output_format(
-        speechsdk.SpeechSynthesisOutputFormat.Audio16Khz128KBitRateMonoMp3
-    )
-    speech_config.speech_synthesis_voice_name = get_voice_name(request.language)
+    voice_name = get_voice_name(request.language)
     
-    synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
-    
-    # Check if we need SSML (only for Uzbek special characters)
+    # Check if we need special SSML (only for Uzbek special characters)
     ssml = None
     if request.language == "uz-UZ":
         ssml = build_uzbek_ssml(norm_text)
     
+    # If no special SSML, build a standard one with prosody for children
+    if not ssml:
+        escaped = escape(norm_text)
+        lang = request.language or "uz-UZ"
+        ssml = f"""<speak version='1.0' xml:lang='{lang}'>
+            <voice name='{voice_name}'>
+                <prosody rate='-20%'>{escaped}</prosody>
+            </voice>
+        </speak>"""
+    
     try:
-        if ssml:
-            result = synthesizer.speak_ssml_async(ssml).get()
-        else:
-            result = synthesizer.speak_text_async(norm_text).get()
+        # Get token
+        token_url = f"https://{speech_region}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
+        token_resp = http_requests.post(token_url, headers={"Ocp-Apim-Subscription-Key": speech_key})
+        token_resp.raise_for_status()
         
-        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            return Response(
-                content=bytes(result.audio_data),
-                media_type="audio/mpeg"
-            )
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Speech synthesis error: {result.error_details if hasattr(result, 'error_details') else 'Unknown error'}"
-            )
+        # TTS via REST
+        tts_url = f"https://{speech_region}.tts.speech.microsoft.com/cognitiveservices/v1"
+        tts_resp = http_requests.post(tts_url, headers={
+            "Authorization": f"Bearer {token_resp.text}",
+            "Content-Type": "application/ssml+xml",
+            "X-Microsoft-OutputFormat": "audio-16khz-128kbitrate-mono-mp3",
+            "User-Agent": "Alif24-Backend"
+        }, data=ssml.encode('utf-8'))
+        tts_resp.raise_for_status()
+        
+        return Response(content=tts_resp.content, media_type="audio/mpeg")
     except Exception as e:
         raise HTTPException(
             status_code=500,

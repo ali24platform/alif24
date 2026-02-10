@@ -18,14 +18,11 @@ from app.services.ai_cache_service import AICacheService
 
 router = APIRouter()
 
-# HARDCODED CONFIGURATION (Obfuscated)
-AZURE_ENDPOINT = "https://deplo.cognitiveservices.azure.com/"
-# Key Split
-AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
-AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
-AZURE_KEY = AZURE_KEY_1 + AZURE_KEY_2
-AZURE_VERSION = "2025-01-01-preview"
-AZURE_MODEL = "gpt-5-chat"
+# Configuration from settings (env vars)
+AZURE_ENDPOINT = settings.AZURE_OPENAI_ENDPOINT
+AZURE_KEY = settings.AZURE_OPENAI_KEY
+AZURE_VERSION = settings.AZURE_OPENAI_API_VERSION
+AZURE_MODEL = settings.AZURE_OPENAI_DEPLOYMENT_NAME
 
 # Language-specific prompts
 def get_system_prompt(language: str, prompt_type: str):
@@ -199,9 +196,9 @@ class SaveAnalysisRequest(BaseModel):
 def get_azure_client():
     """Azure OpenAI client yaratish"""
     return AzureOpenAI(
-        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", AZURE_ENDPOINT),
-        api_key=os.getenv("AZURE_OPENAI_KEY", AZURE_KEY),
-        api_version=os.getenv("AZURE_OPENAI_API_VERSION", AZURE_VERSION)
+        azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
+        api_key=settings.AZURE_OPENAI_KEY,
+        api_version=settings.AZURE_OPENAI_API_VERSION
     )
 
 

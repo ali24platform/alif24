@@ -410,6 +410,10 @@ def parse_image(image_content: bytes) -> List[Dict]:
         print("WARNING: Pillow or pytesseract not installed, skipping OCR")
         return []
         
+    if Image is None:
+        print("WARNING: Pillow not installed, skipping image parsing")
+        return []
+    
     image = Image.open(io.BytesIO(image_content))
     text = pytesseract.image_to_string(image, lang='eng+rus+uzb')
     return parse_tests(text)
@@ -417,6 +421,10 @@ def parse_image(image_content: bytes) -> List[Dict]:
 def parse_image_tests(image_content: bytes) -> List[Dict]:
     """Rasmdan matn olib, test tuzishga yuborish"""
     print(f"DEBUG: Rasmdan matn olish boshlandi...")
+    
+    if Image is None:
+        print("WARNING: Pillow not installed, skipping image parsing")
+        return []
     
     try:
         # Rasmdan matn olish
@@ -562,10 +570,10 @@ def parse_fallback_image_format(text: str) -> List[Dict]:
 
 def parse_image(image_content: bytes) -> List[Dict]:
     """Rasmdan OCR orqali matn o'qish"""
-    image = Image.open(io.BytesIO(image_content))
-    if pytesseract is None:
-        print("WARNING: pytesseract not installed, skipping OCR")
+    if Image is None or pytesseract is None:
+        print("WARNING: Pillow or pytesseract not installed, skipping OCR")
         return []
+    image = Image.open(io.BytesIO(image_content))
     text = pytesseract.image_to_string(image, lang='eng+rus+uzb')
     return parse_tests(text)
 

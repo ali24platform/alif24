@@ -12,28 +12,16 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from openai import AzureOpenAI
 import base64
 import os
-from dotenv import load_dotenv
+from app.core.config import settings
 
-load_dotenv()
 router = APIRouter()
 
-# Azure OpenAI Configuration
-AZURE_ENDPOINT = "https://deplo.cognitiveservices.azure.com/"
-# Key split to bypass GitHub secret scanning
-AZURE_KEY_1 = "Ekghfq1yMBAeGkHM6kKpsfPrWP77Ab7x0NaQaS81I9I7zGDfbt8lJQQJ99BLACfhMk"
-AZURE_KEY_2 = "5XJ3w3AAABACOGUD56"
-AZURE_KEY = AZURE_KEY_1 + AZURE_KEY_2
-
-AZURE_VERSION = "2025-01-01-preview"
-AZURE_MODEL = "gpt-5-chat"
-
-
 def get_client():
-    """Create Azure OpenAI client with config fallbacks"""
+    """Create Azure OpenAI client from settings (env vars)"""
     return AzureOpenAI(
-        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", AZURE_ENDPOINT),
-        api_key=os.getenv("AZURE_OPENAI_KEY", AZURE_KEY),
-        api_version=os.getenv("AZURE_OPENAI_API_VERSION", AZURE_VERSION)
+        azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
+        api_key=settings.AZURE_OPENAI_KEY,
+        api_version=settings.AZURE_OPENAI_API_VERSION
     )
 
 

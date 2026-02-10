@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: int = int(os.getenv("DB_PORT", 5432))
     DB_NAME: str = os.getenv("DB_NAME", "postgres")
-    DB_USER: str = os.getenv("DB_USER", "postgres")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
+    DB_USER: str = "postgres"
+    DB_PASSWORD: str = ""
     DB_DIALECT: str = "postgresql"
     
     # JWT
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     
     # OpenAI
-    OPENAI_API_KEY: str = "your_openai_api_key_here"
+    OPENAI_API_KEY: str = "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"
     OPENAI_MODEL: str = "gpt-4"
     
     # Azure

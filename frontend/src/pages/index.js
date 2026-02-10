@@ -14,19 +14,6 @@ export { default as StudentDashboard } from './StudentDashboard';
 export { default as ParentDashboard } from './ParentDashboard';
 export { default as LessonPage } from './LessonPage';
 export { default as LessonBuilder } from './LessonBuilder';
-export { default as TestAIPage } from '../modules/testai/pages/TestAIPage';
 
-export {
-    HomePage,
-    AboutPage,
-    LessonBuilder,
-    PartnerPage,
-    ProfilePageTeacher,
-    OrganizationPage,
-    TeacherDashboard,
-    StudentDashboard,
-    ParentDashboard,
-    TestAIPage,
-    OrganizationDashboard,
-    LessonPage
-};
+// Feature pages
+export { default as TestAIPage } from '../modules/testai/pages/TestAIPage';

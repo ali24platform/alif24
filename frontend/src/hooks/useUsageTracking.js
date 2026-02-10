@@ -7,6 +7,8 @@ export const useUsageTracking = () => {
     courseViews: 0,
     materialDownloads: 0,
     quizAttempts: 0,
+    lessonStarts: 0,
+    videoWatches: 0,
     totalActions: 0,
     lastAction: null,
     firstVisit: null
@@ -62,6 +64,8 @@ export const useUsageTracking = () => {
       courseViews: 0,
       materialDownloads: 0,
       quizAttempts: 0,
+      lessonStarts: 0,
+      videoWatches: 0,
       totalActions: 0,
       lastAction: null,
       firstVisit: new Date().toISOString()

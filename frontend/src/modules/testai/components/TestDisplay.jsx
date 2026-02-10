@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Save, Download, Edit, Trash2, CheckCircle, XCircle, Award, Target, Zap } from 'lucide-react';
-import axios from 'axios';
+import apiService from '../../../services/apiService';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -18,8 +18,8 @@ const TestDisplay = ({ tests, onSave }) => {
     };
 
     try {
-      const response = await axios.post('http://localhost:8001/api/tests', testData);
-      onSave(response.data.test_id);
+      const response = await apiService.post('/testai/save', testData);
+      onSave(response.data?.test_id || response.test_id || response.id);
     } catch (error) {
       console.error('Save error:', error);
     }

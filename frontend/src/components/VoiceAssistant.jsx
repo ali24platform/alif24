@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useRef } from "react";
-import axios from 'axios';
 import { Mic, X } from "lucide-react";
 import "./VoiceAssistant.css";
 
@@ -77,11 +76,16 @@ export default function VoiceAssistant({
         const form = new FormData();
         form.append('file', blob, 'speech.webm');
         try {
-          const resp = await axios.post(`${baseUrl}/speech-to-text`, form, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-            timeout: 20000,
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20000);
+          const resp = await fetch(`${baseUrl}/speech-to-text`, {
+            method: 'POST',
+            body: form,
+            signal: controller.signal,
           });
-          const text = resp?.data?.text || resp?.data?.transcript || '';
+          clearTimeout(timeoutId);
+          const respData = await resp.json();
+          const text = respData?.text || respData?.transcript || '';
           setTranscript(text || '');
           if (text && onTranscript) {
             try { onTranscript(text); } catch (e) { console.error('onTranscript error:', e); }

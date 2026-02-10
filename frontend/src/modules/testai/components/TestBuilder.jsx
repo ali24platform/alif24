@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiService from '../../../services/apiService';
 import { Save, Plus, Trash2, Edit3, Check, X, AlertCircle, BookOpen, Users, Clock, Award, Zap } from 'lucide-react';
 
 const TestBuilder = ({ initialTests = [], onTestSaved }) => {
@@ -101,10 +101,10 @@ const TestBuilder = ({ initialTests = [], onTestSaved }) => {
         category: testInfo.category
       };
 
-      const response = await axios.post('/api/v1/testai/save', testData);
+      const response = await apiService.post('/testai/save', testData);
 
       showNotification('success', 'Test muvaffaqiyatli saqlandi!');
-      onTestSaved && onTestSaved(response.data.test);
+      onTestSaved && onTestSaved(response.data?.test || response.test || response);
 
       setTestInfo({
         title: '',

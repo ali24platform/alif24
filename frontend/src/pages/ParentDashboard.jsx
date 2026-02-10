@@ -152,7 +152,10 @@ const ParentDashboard = () => {
                         </div>
 
                         <div className="flex gap-3">
-                            <button className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-medium hover:bg-blue-700 transition">
+                            <button
+                                onClick={() => alert(`${child.first_name} uchun hisobot tez orada tayyor bo'ladi`)}
+                                className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-medium hover:bg-blue-700 transition"
+                            >
                                 {t.children.viewReport}
                             </button>
                         </div>

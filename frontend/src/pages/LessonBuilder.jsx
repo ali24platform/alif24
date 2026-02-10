@@ -166,7 +166,7 @@ const LessonBuilder = () => {
 
         } catch (error) {
             console.error(error);
-            alert("Xatolik: " + (error.response?.data?.detail || error.message));
+            alert("Xatolik: " + error.message);
         } finally {
             setLoading(false);
         }

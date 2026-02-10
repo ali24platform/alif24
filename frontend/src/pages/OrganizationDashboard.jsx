@@ -82,7 +82,7 @@ const OrganizationDashboard = () => {
             loadData();
             alert("O'quvchi muvaffaqiyatli taklif qilindi.");
         } catch (error) {
-            alert("Xatolik: " + (error.response?.data?.detail || error.message));
+            alert("Xatolik: " + error.message);
         }
     };
 
@@ -120,7 +120,7 @@ const OrganizationDashboard = () => {
             loadData();
             alert('Teacher added successfully');
         } catch (error) {
-            alert('Error adding teacher: ' + (error.response?.data?.detail || error.message));
+            alert('Error adding teacher: ' + error.message);
         }
     };
 
@@ -185,7 +185,7 @@ const OrganizationDashboard = () => {
                     <div className="flex justify-between items-center">
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Ta’lim tashkiloti Paneli</h1>
-                            <p className="text-sm text-gray-600">{user?.name} | {user?.email}</p>
+                            <p className="text-sm text-gray-600">{user?.first_name} {user?.last_name} | {user?.email}</p>
                         </div>
                         <div className="flex gap-3">
                             <button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiService from '../../../services/apiService';
 import { Send, Users, Calendar, Clock, CheckCircle, AlertCircle, Plus, X, BookOpen, Target, Zap, Rocket } from 'lucide-react';
 
 const TestAssignment = ({ tests = [] }) => {
@@ -26,8 +26,8 @@ const TestAssignment = ({ tests = [] }) => {
 
   const fetchClasses = async () => {
     try {
-      const response = await axios.get('/api/v1/classes');
-      setClasses(response.data.classes || []);
+      const response = await apiService.get('/teachers/classrooms');
+      setClasses(response.data?.classes || response.classes || response || []);
     } catch (error) {
       console.error('Classes fetch error:', error);
     }
@@ -35,8 +35,8 @@ const TestAssignment = ({ tests = [] }) => {
 
   const fetchAssignments = async () => {
     try {
-      const response = await axios.get('/api/v1/assignments');
-      setAssignments(response.data.assignments || []);
+      const response = await apiService.get('/teacher-tests');
+      setAssignments(response.data?.assignments || response.assignments || []);
     } catch (error) {
       console.error('Assignments fetch error:', error);
     }
@@ -49,13 +49,13 @@ const TestAssignment = ({ tests = [] }) => {
     }
 
     try {
-      const response = await axios.post('/api/v1/classes', {
-        ...newClass,
-        teacher_id: 'teacher_1'
+      const response = await apiService.post('/teachers/classrooms', {
+        name: newClass.name,
+        description: newClass.description
       });
 
       showNotification('success', 'Sinf muvaffaqiyatli yaratildi!');
-      setClasses([...classes, response.data.class]);
+      setClasses([...classes, response.data?.class || response]);
       setNewClass({ name: '', description: '' });
       setShowNewClassForm(false);
     } catch (error) {
@@ -85,7 +85,7 @@ const TestAssignment = ({ tests = [] }) => {
         due_date: dueDate || null
       };
 
-      const response = await axios.post('/api/v1/assignments', assignmentData);
+      const response = await apiService.post('/testai/assign', assignmentData);
 
       showNotification('success', 'Test sinfga muvaffaqiyatli yuborildi!');
       fetchAssignments();

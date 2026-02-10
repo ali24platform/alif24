@@ -87,11 +87,11 @@ const HomePage = () => {
 
     if (game.id === 7) return navigate('/ertak');
 
-    // TEST UCHUN VAQTINCHALIK
-    if (game.id === 14) return navigate('/admin');
-    if (game.id === 15) return navigate('/teacher-dashboard');
-    if (game.id === 16) return navigate('/student-dashboard');
-    if (game.id === 17) return navigate('/parent-dashboard');
+    // These games don't have dedicated pages yet — show coming soon
+    if ([14, 15, 16, 17].includes(game.id)) {
+      window.appAlert?.(`${game.title} tez orada ishga tushadi!`) || alert(`${game.title} tez orada ishga tushadi!`);
+      return;
+    }
 
     // Check if user is authenticated and game is premium
     if (!isAuthenticated && game.premium) {

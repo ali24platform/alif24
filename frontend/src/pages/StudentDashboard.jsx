@@ -14,7 +14,7 @@ import {
 
 const STORY_API_BASE = import.meta.env.VITE_API_URL
     ? import.meta.env.VITE_API_URL + '/smartkids'
-    : "http://localhost:8000/api/v1/smartkids";
+    : "/api/v1/smartkids";
 
 const StudentDashboard = () => {
     const { language } = useLanguage();
@@ -322,7 +322,7 @@ const StudentDashboard = () => {
                                         <p className="text-sm text-gray-500">{task.deadline}</p>
                                     </div>
                                     {task.status === 'pending' && (
-                                        <button className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg font-medium">Bajarish</button>
+                                        <button onClick={() => alert(`"${task.title}" vazifasi tez orada ochiladi`)} className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg font-medium hover:bg-blue-200 transition-colors">Bajarish</button>
                                     )}
                                 </div>
                             ))}

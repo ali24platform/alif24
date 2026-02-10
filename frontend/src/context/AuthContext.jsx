@@ -111,9 +111,10 @@ export const AuthProvider = ({ children }) => {
     isTeacher: user?.role === 'teacher',
     isParent: user?.role === 'parent',
     isStudent: user?.role === 'student',
+    isSuperAdmin: user?.role === 'super_admin',
     // Combined checks for convenience
-    isAdmin: user?.role === 'moderator' || user?.role === 'organization',
-    canManageContent: ['moderator', 'organization', 'teacher'].includes(user?.role),
+    isAdmin: ['admin', 'super_admin', 'moderator', 'organization'].includes(user?.role),
+    canManageContent: ['admin', 'super_admin', 'moderator', 'organization', 'teacher'].includes(user?.role),
     login,
     register,
     logout,

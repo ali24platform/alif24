@@ -45,7 +45,9 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
       switch (role) {
         case 'admin':
         case 'super_admin':
-          navigate('/admin');
+        case 'moderator':
+        case 'organization':
+          navigate('/organization-dashboard');
           break;
         case 'teacher':
           navigate('/teacher-dashboard');
@@ -55,10 +57,6 @@ const LoginModal = ({ isOpen, onClose, onSwitchToRegister }) => {
           break;
         case 'student':
           navigate('/student-dashboard');
-          break;
-        case 'organization':
-        case 'moderator':
-          navigate('/organization-dashboard');
           break;
         default:
           navigate('/dashboard');

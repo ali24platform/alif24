@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiService from '../../../services/apiService';
 import { Upload, FileText, Image, Loader2, Sparkles, CheckCircle2, XCircle, Info, Zap } from 'lucide-react';
 
 const TestParser = ({ onTestsParsed }) => {
@@ -21,11 +21,12 @@ const TestParser = ({ onTestsParsed }) => {
 
     setLoading(true);
     try {
-      const response = await axios.post('/api/v1/testai/parse/text', {
+      const response = await apiService.post('/testai/parse/text', {
         text: text
       });
-      onTestsParsed(response.data.tests);
-      showNotification('success', `${response.data.tests.length} ta test muvaffaqiyatli yaratildi!`);
+      const tests = response.data?.tests || response.tests || [];
+      onTestsParsed(tests);
+      showNotification('success', `${tests.length} ta test muvaffaqiyatli yaratildi!`);
     } catch (error) {
       console.error('Parsing error:', error);
       showNotification('error', 'Xatolik yuz berdi. Iltimos qaytadan urinib ko\'ring.');
@@ -40,19 +41,15 @@ const TestParser = ({ onTestsParsed }) => {
     formData.append('file', file);
 
     try {
-      const response = await axios.post('/api/v1/testai/parse/file',
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        }
-      );
-      onTestsParsed(response.data.tests);
-      setText(response.data.tests.map(t =>
+      const response = await apiService.post('/testai/parse/file', formData);
+      const tests = response.data?.tests || response.tests || [];
+      onTestsParsed(tests);
+      setText(tests.map(t =>
         `${t.question}\n${t.options.map((opt, idx) =>
           `${String.fromCharCode(65 + idx)}) ${opt}`
         ).join('\n')}`
       ).join('\n\n'));
-      showNotification('success', `Fayl muvaffaqiyatli yuklandi! ${response.data.tests.length} ta test topildi.`);
+      showNotification('success', `Fayl muvaffaqiyatli yuklandi! ${tests.length} ta test topildi.`);
     } catch (error) {
       console.error('File upload error:', error);
       showNotification('error', 'Faylni yuklashda xatolik. Format to\'g\'riligini tekshiring.');

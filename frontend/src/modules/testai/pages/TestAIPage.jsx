@@ -4,12 +4,7 @@ import TestBuilder from '../components/TestBuilder';
 import TestAssignment from '../components/TestAssignment';
 import TestResults from '../components/TestResults';
 import { BookOpen, Edit3, Send, Award, Sparkles } from 'lucide-react';
-import axios from 'axios';
-
-// Use relative path for API or import configured instance
-const API_URL = '/api/v1/testai';
-// Or better, use the exist modules. 
-// For now I will define a helper or use axios directly with relative path.
+import apiService from '../../../services/apiService';
 
 function TestAIPage() {
     const [tests, setTests] = useState([]);
@@ -29,8 +24,8 @@ function TestAIPage() {
             // POST /api/v1/testai/save -> Creates TeacherTest
             // GET /api/v1/teacher-tests -> Gets TeacherTests
 
-            const response = await axios.get('/api/v1/teacher-tests');
-            setSavedTests(response.data || []);
+            const response = await apiService.get('/teacher-tests');
+            setSavedTests(response.data || response || []);
             // Note: TeacherTest response shape might differ from TestAI expected shape.
             // TestAI expects: { tests: [...] } or list. 
             // TeacherTest logic returns list directly or paginated object. 

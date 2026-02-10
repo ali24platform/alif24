@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import {
@@ -20,54 +21,41 @@ import {
 const DashboardLayout = ({ children }) => {
   const { user, logout, isSuperAdmin, isAdmin, isTeacher, isParent, isStudent, isOrganization } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const getNavigation = () => {
     if (isSuperAdmin || isAdmin) {
       return [
-        { icon: <Home className="w-5 h-5" />, label: t('home'), href: '/admin' },
-        { icon: <Users className="w-5 h-5" />, label: t('nav_users'), href: '/admin/users' },
-        { icon: <BookOpen className="w-5 h-5" />, label: t('nav_courses'), href: '/admin/courses' },
-        { icon: <TrendingUp className="w-5 h-5" />, label: 'CRM Leads', href: '/crm' },
-        { icon: <BarChart3 className="w-5 h-5" />, label: t('nav_analytics'), href: '/admin/analytics' },
-        { icon: <Settings className="w-5 h-5" />, label: t('settings'), href: '/admin/settings' },
+        { icon: <Home className="w-5 h-5" />, label: t('home') || 'Bosh sahifa', href: '/organization-dashboard' },
+        { icon: <TrendingUp className="w-5 h-5" />, label: 'CRM Lidlar', href: '/crm' },
       ];
     }
 
     if (isOrganization) {
       return [
         { icon: <Home className="w-5 h-5" />, label: "Bosh sahifa", href: '/organization-dashboard' },
-        // CRM link hidden as per user request
-        // { icon: <TrendingUp className="w-5 h-5" />, label: 'CRM / Lidlar', href: '/crm' }, 
+        { icon: <TrendingUp className="w-5 h-5" />, label: 'CRM / Lidlar', href: '/crm' },
       ];
     }
 
     if (isTeacher) {
       return [
-        { icon: <Home className="w-5 h-5" />, label: t('home'), href: '/teacher' },
-        { icon: <BookOpen className="w-5 h-5" />, label: t('nav_my_courses'), href: '/teacher/courses' },
-        { icon: <Users className="w-5 h-5" />, label: t('nav_students'), href: '/teacher/students' },
-        { icon: <Calendar className="w-5 h-5" />, label: t('nav_schedule'), href: '/teacher/schedule' },
-        { icon: <FileText className="w-5 h-5" />, label: t('nav_assignments'), href: '/teacher/assignments' },
+        { icon: <Home className="w-5 h-5" />, label: t('home') || 'Bosh sahifa', href: '/teacher-dashboard' },
+        { icon: <BookOpen className="w-5 h-5" />, label: t('nav_my_courses') || 'Darslarim', href: '/lesson-builder' },
+        { icon: <FileText className="w-5 h-5" />, label: t('nav_assignments') || 'Testlar', href: '/teacher/test-ai' },
       ];
     }
 
     if (isParent) {
       return [
-        { icon: <Home className="w-5 h-5" />, label: t('home'), href: '/parent' },
-        { icon: <Users className="w-5 h-5" />, label: t('nav_children'), href: '/parent/children' },
-        { icon: <TrendingUp className="w-5 h-5" />, label: t('progress'), href: '/parent/progress' },
-        { icon: <Calendar className="w-5 h-5" />, label: t('nav_schedule'), href: '/parent/schedule' },
-        { icon: <BookOpen className="w-5 h-5" />, label: t('nav_materials'), href: '/parent/materials' },
+        { icon: <Home className="w-5 h-5" />, label: t('home') || 'Bosh sahifa', href: '/parent-dashboard' },
       ];
     }
 
     if (isStudent) {
       return [
-        { icon: <Home className="w-5 h-5" />, label: t('home'), href: '/student' },
-        { icon: <BookOpen className="w-5 h-5" />, label: t('nav_materials'), href: '/student/courses' },
-        { icon: <FileText className="w-5 h-5" />, label: t('nav_assignments'), href: '/student/assignments' },
-        { icon: <Award className="w-5 h-5" />, label: t('achievements'), href: '/student/achievements' },
-        { icon: <BarChart3 className="w-5 h-5" />, label: t('progress'), href: '/student/progress' },
+        { icon: <Home className="w-5 h-5" />, label: t('home') || 'Bosh sahifa', href: '/student-dashboard' },
       ];
     }
 
@@ -140,14 +128,18 @@ const DashboardLayout = ({ children }) => {
 
           <nav className="space-y-1">
             {navigation.map((item, index) => (
-              <a
+              <button
                 key={index}
-                href={item.href}
-                className="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={() => navigate(item.href)}
+                className={`flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg transition-colors ${
+                  location.pathname === item.href
+                    ? 'bg-indigo-50 text-indigo-700 font-medium'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
               >
                 {item.icon}
                 <span>{item.label}</span>
-              </a>
+              </button>
             ))}
           </nav>
         </div>

@@ -6,6 +6,8 @@ import { useAuth } from '../../context/AuthContext';
  * Role-based dashboard routes mapping
  */
 const ROLE_DASHBOARDS = {
+    admin: '/organization-dashboard',
+    super_admin: '/organization-dashboard',
     moderator: '/organization-dashboard',
     organization: '/organization-dashboard',
     teacher: '/teacher-dashboard',

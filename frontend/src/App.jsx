@@ -120,15 +120,6 @@ const AppRoutes = () => {
       />
 
       <Route
-        path="/lesson-builder"
-        element={
-          <ProtectedRoute allowedRoles={['teacher', 'organization', 'moderator']}>
-            <LessonBuilder />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
         path="/test-creator"
         element={
           <ProtectedRoute allowedRoles={['teacher', 'organization', 'moderator']}>
@@ -166,7 +157,7 @@ const AppRoutes = () => {
       <Route
         path="/organization-dashboard"
         element={
-          <ProtectedRoute allowedRoles={['organization', 'moderator']}>
+          <ProtectedRoute allowedRoles={['organization', 'moderator', 'admin']}>
             <OrganizationDashboard />
           </ProtectedRoute>
         }

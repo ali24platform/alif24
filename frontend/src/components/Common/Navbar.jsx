@@ -58,7 +58,7 @@ const Navbar = () => {
     user.role === 'student' ? '/student-dashboard' :
       user.role === 'teacher' ? '/teacher-dashboard' :
         user.role === 'parent' ? '/parent-dashboard' :
-          user.role === 'admin' ? '/admin' :
+          (user.role === 'admin' || user.role === 'moderator' || user.role === 'organization') ? '/organization-dashboard' :
             '/profile'
   ) : '/profile';
 
@@ -159,31 +159,30 @@ const Navbar = () => {
         {!isMobile && (
           <>
             <nav className="flex gap-6">
-              <a
-                href="/dashboard"
-                className="text-[#dcdcdc] text-lg transition-colors hover:text-white no-underline"
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="text-[#dcdcdc] text-lg transition-colors hover:text-white bg-transparent border-none cursor-pointer"
               >
                 {t('home') || 'Bosh sahifa'}
-              </a>
-              <a
-                href="/about"
-                className="text-[#dcdcdc] text-lg transition-colors hover:text-white no-underline"
+              </button>
+              <button
+                onClick={() => navigate('/about')}
+                className="text-[#dcdcdc] text-lg transition-colors hover:text-white bg-transparent border-none cursor-pointer"
               >
                 {t('aboutus') || 'Biz haqimizda'}
-              </a>
-              <a
-                href="/partners"
-                className="text-[#dcdcdc] text-lg transition-colors hover:text-white no-underline"
+              </button>
+              <button
+                onClick={() => navigate('/partners')}
+                className="text-[#dcdcdc] text-lg transition-colors hover:text-white bg-transparent border-none cursor-pointer"
               >
                 {t('partner') || 'Hamkorlar'}
-              </a>
-              <a
-                href={profilePath}
+              </button>
+              <button
                 onClick={handleProfileClick}
-                className="text-[#dcdcdc] text-lg transition-colors hover:text-white no-underline"
+                className="text-[#dcdcdc] text-lg transition-colors hover:text-white bg-transparent border-none cursor-pointer"
               >
                 {t('profile') || 'Profil'}
-              </a>
+              </button>
             </nav>
 
             <div className="flex items-center gap-4">

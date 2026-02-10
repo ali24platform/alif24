@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiService from '../../../services/apiService';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Award, TrendingUp, Users, Clock, CheckCircle, AlertCircle, Download, Filter, Search, Eye, Calendar, Activity, Target } from 'lucide-react';
 
@@ -26,8 +26,8 @@ const TestResults = ({ tests = [] }) => {
   const fetchTestResults = async (testId) => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8001/api/test-results/${testId}`);
-      setResults(response.data.results || []);
+      const response = await apiService.get(`/testai/results/${testId}`);
+      setResults(response.data?.results || response.results || []);
     } catch (error) {
       console.error('Results fetch error:', error);
       showNotification('error', 'Natijalarni olishda xatolik!');

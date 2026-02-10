@@ -10,7 +10,8 @@ import { teacherService } from '../services/teacherService';
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
-  const navigate = useNavigate(); // Added navigate
+  const { t } = useLanguage();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedClass, setSelectedClass] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -22,6 +23,15 @@ const TeacherDashboard = () => {
   // Verification Status
   const isVerified = user?.teacher_profile?.verification_status === 'approved';
   const isPending = user?.teacher_profile?.verification_status === 'pending';
+
+  // Teacher profile data (derived from auth user)
+  const teacherData = {
+    name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'O\'qituvchi',
+    position: user?.teacher_profile?.position || 'O\'qituvchi',
+    specialty: user?.teacher_profile?.specialty || user?.teacher_profile?.subject || 'Umumiy',
+    email: user?.email || '',
+    phone: user?.phone || ''
+  };
 
   // Real Data State
   const [classes, setClasses] = useState([]);
@@ -536,7 +546,6 @@ const TeacherDashboard = () => {
             </tr>
           </thead>
           <tbody>
-            <tbody>
               {studentsList.length === 0 ? <tr><td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>O'quvchilar yo'q. Sinf tanlang yoki qo'shing.</td></tr> : studentsList.map(student => (
                 <tr key={student.id}>
                   <td>
@@ -564,7 +573,6 @@ const TeacherDashboard = () => {
                   </td>
                 </tr>
               ))}
-            </tbody>
           </tbody>
         </table>
       </div>
@@ -711,11 +719,26 @@ const TeacherDashboard = () => {
     </div>
   );
 
+  const PlaceholderView = ({ title, icon: Icon }) => (
+    <div style={{ padding: '40px', textAlign: 'center' }}>
+      <div style={{ background: '#f3f4f6', width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+        {Icon && <Icon size={36} style={{ color: '#9ca3af' }} />}
+      </div>
+      <h2 style={{ color: '#374151', marginBottom: '8px' }}>{title}</h2>
+      <p style={{ color: '#9ca3af' }}>Bu bo'lim tez orada ishga tushadi</p>
+    </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <DashboardView />;
+      case 'classes': return <PlaceholderView title="Darslar va fanlar" icon={BookOpen} />;
       case 'students': return <StudentsView />;
+      case 'grades': return <PlaceholderView title="Baholash" icon={Award} />;
       case 'messages': return <MessagesView />;
+      case 'calendar': return <PlaceholderView title="Kalendar" icon={Calendar} />;
+      case 'resources': return <PlaceholderView title="Metodik resurslar" icon={FileText} />;
+      case 'help': return <PlaceholderView title="Yordam" icon={HelpCircle} />;
       case 'settings': return <SettingsView />;
       case 'testai': return <div className="p-6"><TestAIPage /></div>;
       default: return <DashboardView />;

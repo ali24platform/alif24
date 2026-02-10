@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from uuid import UUID
+import uuid
 
 from app.core.database import get_db
 from app.services.lesson_service import LessonService

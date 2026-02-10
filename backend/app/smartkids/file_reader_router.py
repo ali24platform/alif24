@@ -1,6 +1,9 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 import io
-import docx
+try:
+    import docx
+except ImportError:
+    docx = None
 import pypdf
 import chardet
 import uuid
@@ -10,6 +13,8 @@ router = APIRouter()
 file_storage = {}  # In-memory storage for file texts
 
 def read_docx(content):
+    if docx is None:
+        raise HTTPException(status_code=501, detail="DOCX processing is temporarily disabled for optimization.")
     file_like = io.BytesIO(content)
     doc = docx.Document(file_like)
     return "\n".join(p.text for p in doc.paragraphs)

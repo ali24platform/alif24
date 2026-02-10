@@ -7,7 +7,9 @@ import uuid
 from app.core.database import get_db
 from app.middleware.deps import get_current_user
 from app.models.user import User
-from app.models.rbac_models import StudentProfile, Progress, Lesson, ProgressStatus
+from app.models.rbac_models import StudentProfile
+from app.models.progress import Progress, ProgressStatus
+from app.models.lesson import Lesson
 from app.models.reading_analysis import ReadingAnalysis
 
 router = APIRouter()

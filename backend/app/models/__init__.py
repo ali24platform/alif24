@@ -85,6 +85,12 @@ from app.models.live_quiz import (
 # Language is in user.py (which redirects to rbac_models but adds Language enum)
 from app.models.user import Language
 
+# Daily Quiz Models
+from app.models.quiz import QuizQuestion, QuizAttempt
+
+# AI Cache Model
+from app.models.ai_cache import AICache
+
 # Backward compatibility aliases
 Student = StudentProfile
 Teacher = TeacherProfile
@@ -183,12 +189,10 @@ __all__ = [
     
     # NEW: Daily Quiz Models
     "QuizQuestion",
-    "QuizAttempt"
+    "QuizAttempt",
+    
+    # AI Cache
+    "AICache",
 ]
 
-# NEW: Daily Quiz Models
-from app.models.quiz import QuizQuestion, QuizAttempt
-
-# NEW: AI Cache Model
-from app.models.ai_cache import AICache
 

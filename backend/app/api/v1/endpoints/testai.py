@@ -149,7 +149,7 @@ async def save_test_logic(test_data: TestCreateSchema, db: Session, current_user
         # Format questions for JSON storage
         formatted_questions = []
         for idx, q in enumerate(test_data.questions):
-            q_dict = q.dict()
+            q_dict = q.model_dump()
             q_dict["id"] = idx + 1
             if not q_dict.get("id"):
                 q_dict["id"] = idx + 1
@@ -258,7 +258,7 @@ async def update_test(
              # Reformat questions
             formatted_questions = []
             for idx, q in enumerate(test_data.questions):
-                q_dict = q.dict()
+                q_dict = q.model_dump()
                 q_dict["id"] = idx + 1
                 formatted_questions.append(q_dict)
             test.questions = formatted_questions

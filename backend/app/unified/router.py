@@ -44,7 +44,7 @@ def get_voice_config(language, custom_voice=None):
         return None, "Azure Speech key not configured"
     
     if speechsdk is None:
-        return None, "Azure Speech SDK not installed"
+        return None, "Speech services are currently disabled on this server."
 
     speech_config = speechsdk.SpeechConfig(
         subscription=speech_key,
@@ -75,7 +75,7 @@ async def text_to_speech(request: TTSRequest):
     speech_config, error = get_voice_config(request.language, request.voice)
     
     if error:
-        raise HTTPException(status_code=500, detail=error)
+        raise HTTPException(status_code=501, detail=error)
         
     synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
     
@@ -107,7 +107,7 @@ async def speech_to_text(
     
     speech_config, error = get_voice_config(language)
     if error:
-        return {"text": "Error: " + error}
+        raise HTTPException(status_code=501, detail=error)
         
     speech_config.speech_recognition_language = language
     

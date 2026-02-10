@@ -87,8 +87,8 @@ class StudentService {
       const response = await apiService.get(`/lessons/${lessonId}`);
       return response.data;
     } catch (error) {
-      if (error.response && error.response.status === 403) {
-        throw { status: 403, message: error.response.data.detail || "Lesson Locked" };
+      if (error.message && error.message.toLowerCase().includes('locked')) {
+        throw { status: 403, message: error.message || "Lesson Locked" };
       }
       throw error;
     }

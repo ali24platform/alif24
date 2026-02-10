@@ -1,6 +1,7 @@
 import hashlib
 import json
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from app.models.ai_cache import AICache
 from typing import Optional, Dict, Any
 

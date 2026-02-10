@@ -223,8 +223,6 @@ async def next_question(request: NextQuestionRequest):
             
         client = get_azure_client()
         model = os.getenv("AZURE_OPENAI_MODEL", AZURE_MODEL)
-        AZURE_MODEL = os.getenv("AZURE_OPENAI_MODEL", "gpt-4") # Assuming AZURE_MODEL is defined
-        model = AZURE_MODEL
         
         # Get language-specific system prompt
         system_prompt = get_system_prompt(request.language, "next-question")

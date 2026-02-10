@@ -137,8 +137,8 @@ async def text_to_speech(request: TextToSpeechRequest):
     
     if speechsdk is None:
         raise HTTPException(
-            status_code=503,
-            detail="Speech synthesis is currently unavailable (Dependency missing)."
+            status_code=501,
+            detail="Speech services are currently disabled on this server."
         )
 
     speech_config = speechsdk.SpeechConfig(

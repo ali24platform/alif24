@@ -79,21 +79,7 @@ class TeacherService {
      * @returns {Promise<Object>} Created lesson
      */
     async createLesson(lessonData) {
-        // Prepare FormData for file upload if needed, or JSON
-        // The backend expects Form data but apiService might handle it if we pass FormData
-        // However, looking at backend implementation, it expects Form fields.
-        // Let's us assume apiService handles JSON -> Form or we construct FormData
-
-        const formData = new FormData();
-        Object.keys(lessonData).forEach(key => {
-            if (lessonData[key] !== null && lessonData[key] !== undefined) {
-                formData.append(key, lessonData[key]);
-            }
-        });
-
-        return apiService.post('/lessons', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        return apiService.post('/lessons', lessonData);
     }
 
     /**
@@ -102,20 +88,7 @@ class TeacherService {
      * @returns {Promise<Object>} Created quiz
      */
     async createQuiz(quizData) {
-        const formData = new FormData();
-        Object.keys(quizData).forEach(key => {
-            if (quizData[key] !== null && quizData[key] !== undefined) {
-                if (typeof quizData[key] === 'object' && key === 'questions') {
-                    formData.append(key, JSON.stringify(quizData[key]));
-                } else {
-                    formData.append(key, quizData[key]);
-                }
-            }
-        });
-
-        return apiService.post('/teacher-tests', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        return apiService.post('/teacher-tests', quizData);
     }
 }
 

@@ -68,6 +68,12 @@ async def text_to_speech(request: TextToSpeechRequest):
             media_type="audio/mpeg"
         )
     
+    if speechsdk is None:
+        raise HTTPException(
+            status_code=501,
+            detail="Speech services are currently disabled on this server."
+        )
+
     speech_config = speechsdk.SpeechConfig(
         subscription=speech_key,
         region=os.getenv("AZURE_SPEECH_REGION", AZURE_SPEECH_REGION_VAL)
@@ -122,6 +128,12 @@ async def speech_to_text(file: UploadFile = File(...)):
     if not speech_key:
         return {"transcript": "тест"}
     
+    if speechsdk is None:
+        raise HTTPException(
+            status_code=501,
+            detail="Speech services are currently disabled on this server."
+        )
+
     speech_config = speechsdk.SpeechConfig(
         subscription=speech_key,
         region=os.getenv("AZURE_SPEECH_REGION", AZURE_SPEECH_REGION_VAL)

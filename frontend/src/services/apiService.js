@@ -14,10 +14,12 @@ class ApiService {
    * Get authorization headers
    * @returns {Object} Headers object
    */
-  getHeaders() {
-    const headers = {
-      'Content-Type': 'application/json'
-    };
+  getHeaders(isFormData = false) {
+    const headers = {};
+
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     const token = localStorage.getItem('accessToken');
     if (token) {
@@ -33,6 +35,15 @@ class ApiService {
    * @returns {Promise<Object>} Parsed response data
    */
   async handleResponse(response) {
+    const contentType = response.headers.get('content-type') || '';
+
+    if (!contentType.includes('application/json')) {
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+      return response;
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -40,11 +51,9 @@ class ApiService {
       if (response.status === 401 && data.error?.code === 'TOKEN_EXPIRED') {
         const refreshed = await this.refreshToken();
         if (!refreshed) {
-          // Dispatch event to show login modal instead of redirecting to non-existent page
           window.dispatchEvent(new CustomEvent('showLoginModal', {
             detail: { message: 'Sessiya muddati tugadi. Iltimos, qayta kiring.' }
           }));
-          // Redirect to home page
           window.location.href = '/';
           throw new Error('Session expired');
         }
@@ -124,10 +133,11 @@ class ApiService {
    * @returns {Promise<Object>} Response data
    */
   async post(endpoint, data = {}) {
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data)
+      headers: this.getHeaders(isFormData),
+      body: isFormData ? data : JSON.stringify(data)
     });
 
     return this.handleResponse(response);
@@ -140,10 +150,11 @@ class ApiService {
    * @returns {Promise<Object>} Response data
    */
   async put(endpoint, data = {}) {
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'PUT',
-      headers: this.getHeaders(),
-      body: JSON.stringify(data)
+      headers: this.getHeaders(isFormData),
+      body: isFormData ? data : JSON.stringify(data)
     });
 
     return this.handleResponse(response);

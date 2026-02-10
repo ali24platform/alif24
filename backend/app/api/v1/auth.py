@@ -140,6 +140,22 @@ async def child_login(
         }
     }
 
+@router.post("/avatar")
+async def upload_avatar(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload user avatar.
+    Currently stores as placeholder — real file upload requires storage service (S3/Supabase Storage).
+    """
+    # For now, return success with current avatar
+    return {
+        "success": True,
+        "message": "Avatar upload endpoint ready. Connect storage service for file handling.",
+        "data": {"avatar": current_user.avatar}
+    }
+
 @router.get("/me")
 async def get_profile(
     current_user: User = Depends(get_current_user),

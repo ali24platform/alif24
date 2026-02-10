@@ -56,6 +56,10 @@ async def init_db():
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Database tables created/verified")
 
+        # Auto-migrate: add missing columns to existing tables
+        # SQLAlchemy create_all() does NOT add new columns to existing tables
+        _auto_migrate_columns()
+
         # Test connection with actual query
         with engine.connect() as conn:
             from sqlalchemy import text
@@ -66,4 +70,41 @@ async def init_db():
         logger.error(f"❌ CRITICAL: Unable to connect to the database: {e}")
         logger.error("The Application will start, but database features will fail!")
         # Note: Not raising to allow Vercel deployment, but logged as critical
+
+
+def _auto_migrate_columns():
+    """
+    Check for missing columns in existing tables and add them.
+    Covers the case where model was updated but DB table already exists.
+    Works on both SQLite and PostgreSQL (Supabase).
+    """
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    
+    # Define columns that MUST exist (table -> [(col_name, col_type)])
+    required_columns = {
+        "users": [
+            ("refresh_token", "TEXT"),
+        ],
+    }
+    
+    is_postgres = "postgresql" in str(engine.url) or "postgres" in str(engine.url)
+    
+    with engine.connect() as conn:
+        for table_name, columns in required_columns.items():
+            if not inspector.has_table(table_name):
+                continue
+            existing_cols = {c["name"] for c in inspector.get_columns(table_name)}
+            for col_name, col_type in columns:
+                if col_name not in existing_cols:
+                    if is_postgres:
+                        sql = f'ALTER TABLE {table_name} ADD COLUMN IF NOT EXISTS {col_name} {col_type}'
+                    else:
+                        sql = f'ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}'
+                    try:
+                        conn.execute(text(sql))
+                        conn.commit()
+                        logger.info(f"✅ Auto-migrated: {table_name}.{col_name} ({col_type})")
+                    except Exception as e:
+                        logger.warning(f"⚠️ Column migration skipped ({table_name}.{col_name}): {e}")
 

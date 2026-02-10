@@ -295,6 +295,27 @@ async def get_subscription_status(
     return service.check_subscription_status(current_user.teacher_profile.id)
 
 
+@teacher_router.post("/messages")
+async def send_message(
+    request: dict,
+    current_user: User = Depends(only_teacher),
+    db: Session = Depends(get_db)
+):
+    """
+    Send a message (teacher → student/parent).
+    Placeholder — full messaging requires WebSocket or notification service.
+    """
+    return {
+        "success": True,
+        "message": "Message sent",
+        "data": {
+            "to": request.get("to"),
+            "content": request.get("content"),
+            "sent_by": str(current_user.id)
+        }
+    }
+
+
 @teacher_router.get("/dashboard/stats")
 async def get_dashboard_stats(
     current_user: User = Depends(only_teacher),

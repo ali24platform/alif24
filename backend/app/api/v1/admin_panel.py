@@ -183,6 +183,7 @@ async def get_all_users(
     search: Optional[str] = None,
     skip: int = 0,
     limit: int = 50,
+    session_role: str = Depends(require_secret_token),
     db: Session = Depends(get_db)
 ):
     """

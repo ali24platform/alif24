@@ -176,6 +176,19 @@ const ParentDashboard = () => {
                             >
                                 {t.children.viewReport}
                             </button>
+                            <button
+                                onClick={async () => {
+                                    if (!confirm(`${child.first_name} uchun yangi PIN yaratilsinmi?`)) return;
+                                    try {
+                                        const res = await parentService.regenerateChildPin(child.id);
+                                        alert(`Yangi PIN: ${res.new_pin}\nUsername: ${res.username}`);
+                                    } catch (err) { alert(err.message || 'Xatolik'); }
+                                }}
+                                className="px-4 py-2.5 bg-amber-100 text-amber-700 rounded-xl font-medium hover:bg-amber-200 transition"
+                                title="PIN yangilash"
+                            >
+                                <Key size={18} />
+                            </button>
                         </div>
                     </div>
                 );

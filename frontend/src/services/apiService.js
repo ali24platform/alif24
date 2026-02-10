@@ -178,6 +178,25 @@ class ApiService {
   }
 
   /**
+   * Make PATCH request
+   * @param {string} endpoint - API endpoint
+   * @param {Object} data - Request body
+   * @returns {Promise<Object>} Response data
+   */
+  async patch(endpoint, data = {}) {
+    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
+    const doFetch = async () => {
+      const resp = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'PATCH',
+        headers: this.getHeaders(isFormData),
+        body: isFormData ? data : JSON.stringify(data)
+      });
+      return this.handleResponse(resp, doFetch);
+    };
+    return doFetch();
+  }
+
+  /**
    * Make DELETE request
    * @param {string} endpoint - API endpoint
    * @returns {Promise<Object>} Response data

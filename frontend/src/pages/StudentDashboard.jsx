@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Common/Navbar';
@@ -18,6 +19,7 @@ const STORY_API_BASE = import.meta.env.VITE_API_URL
     : "/api/v1/smartkids";
 
 const StudentDashboard = () => {
+    const navigate = useNavigate();
     const { language } = useLanguage();
     const { user: authUser } = useAuth();
     const [dashboardData, setDashboardData] = useState(null);
@@ -246,6 +248,23 @@ const StudentDashboard = () => {
                         {bonusMessage}
                     </div>
                 )}
+
+                <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => navigate('/join-quiz')} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white p-5 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center gap-3">
+                        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">🎯</div>
+                        <div className="text-left">
+                            <h3 className="font-bold text-lg">Live Quiz</h3>
+                            <p className="text-white/80 text-xs">Kod bilan qo'shiling</p>
+                        </div>
+                    </button>
+                    <button onClick={() => navigate('/olympiad')} className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-5 rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center gap-3">
+                        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">🏆</div>
+                        <div className="text-left">
+                            <h3 className="font-bold text-lg">Olimpiada</h3>
+                            <p className="text-white/80 text-xs">Bilimingizni sinang</p>
+                        </div>
+                    </button>
+                </div>
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">

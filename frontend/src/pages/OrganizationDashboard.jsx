@@ -22,6 +22,7 @@ const OrganizationDashboard = () => {
     const [error, setError] = useState(null);
     const [usersList, setUsersList] = useState([]);
     const [teachers, setTeachers] = useState([]);
+    const [pendingTeachers, setPendingTeachers] = useState([]);
     const [materials, setMaterials] = useState([]);
     const [leads, setLeads] = useState([]);
 
@@ -50,9 +51,10 @@ const OrganizationDashboard = () => {
         setLoading(true);
         setError(null);
         try {
-            const [statsData, teachersData, materialsData, usersData, leadsData] = await Promise.all([
+            const [statsData, teachersData, pendingData, materialsData, usersData, leadsData] = await Promise.all([
                 organizationService.getStats().catch(err => null),
                 organizationService.getTeachers().catch(err => []),
+                organizationService.getPendingTeachers().catch(err => []),
                 organizationService.getMaterials().catch(err => []),
                 organizationService.getUsers().catch(err => ({ users: [] })),
                 crmService.getLeads().catch(err => [])
@@ -60,6 +62,7 @@ const OrganizationDashboard = () => {
 
             if (statsData) setStats(statsData);
             if (teachersData) setTeachers(teachersData);
+            if (pendingData) setPendingTeachers(Array.isArray(pendingData) ? pendingData : []);
             if (materialsData) setMaterials(materialsData);
             if (usersData && usersData.users) setUsersList(usersData.users);
             if (leadsData) setLeads(leadsData);
@@ -180,9 +183,33 @@ const OrganizationDashboard = () => {
     };
 
     // Filter Users
+    const handleApproveTeacher = async (userId) => {
+        try {
+            await organizationService.approveTeacher(userId);
+            alert("O'qituvchi tasdiqlandi!");
+            loadData();
+        } catch (err) {
+            alert('Xatolik: ' + err.message);
+        }
+    };
+
+    const handleRejectTeacher = async (userId) => {
+        const reason = prompt("Rad etish sababini kiriting:");
+        if (!reason) return;
+        try {
+            await organizationService.rejectTeacher(userId, reason);
+            alert("O'qituvchi rad etildi");
+            loadData();
+        } catch (err) {
+            alert('Xatolik: ' + err.message);
+        }
+    };
+
     const filteredUsers = usersList.filter(u => {
-        const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.email.toLowerCase().includes(searchTerm.toLowerCase());
+        const fullName = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase();
+        const email = (u.email || '').toLowerCase();
+        const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
+            email.includes(searchTerm.toLowerCase());
         const matchesRole = !roleFilter || u.role === roleFilter;
         return matchesSearch && matchesRole;
     });
@@ -427,6 +454,27 @@ const OrganizationDashboard = () => {
                             </button>
                         </div>
 
+                        {/* Pending Teachers Section */}
+                        {pendingTeachers.length > 0 && (
+                            <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <h3 className="font-bold text-yellow-800 mb-3">Tasdiqlash kutayotgan o'qituvchilar ({pendingTeachers.length})</h3>
+                                <div className="space-y-3">
+                                    {pendingTeachers.map(pt => (
+                                        <div key={pt.user?.id} className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                                            <div>
+                                                <div className="font-medium text-gray-900">{pt.user?.first_name} {pt.user?.last_name}</div>
+                                                <div className="text-sm text-gray-500">{pt.user?.email || pt.user?.phone} | {pt.profile?.specialization || 'Mutaxassislik ko\'rsatilmagan'}</div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleApproveTeacher(pt.user?.id)} className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition">Tasdiqlash</button>
+                                                <button onClick={() => handleRejectTeacher(pt.user?.id)} className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded-lg hover:bg-red-200 transition">Rad etish</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-gray-50">
@@ -442,12 +490,12 @@ const OrganizationDashboard = () => {
                                         <tr key={teacher.id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-gray-900">
-                                                    {teacher.user?.first_name} {teacher.user?.last_name}
+                                                    {teacher.first_name} {teacher.last_name}
                                                 </div>
-                                                <div className="text-xs text-gray-500">{teacher.user?.email}</div>
+                                                <div className="text-xs text-gray-500">{teacher.email || teacher.phone}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {teacher.qualification || '-'}
+                                                {teacher.specialization || '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 text-xs rounded-full ${teacher.verification_status === 'approved' ? 'bg-green-100 text-green-800' :
@@ -456,7 +504,10 @@ const OrganizationDashboard = () => {
                                                     {teacher.verification_status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
+                                                {teacher.verification_status === 'pending' && (
+                                                    <button onClick={() => handleApproveTeacher(teacher.user_id)} className="text-green-600 hover:text-green-800 text-xs bg-green-50 px-2 py-1 rounded">Tasdiqlash</button>
+                                                )}
                                                 <button
                                                     onClick={() => handleRemoveTeacher(teacher.id)}
                                                     className="text-red-600 hover:text-red-900 transition"

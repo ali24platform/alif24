@@ -43,6 +43,21 @@ const organizationService = {
         return response;
     },
 
+    getPendingTeachers: async () => {
+        const response = await apiService.get('/organization/pending-teachers');
+        return response;
+    },
+
+    approveTeacher: async (teacherUserId) => {
+        const response = await apiService.post(`/organization/approve-teacher/${teacherUserId}`);
+        return response;
+    },
+
+    rejectTeacher: async (teacherUserId, reason) => {
+        const response = await apiService.post(`/organization/reject-teacher/${teacherUserId}`, { reason });
+        return response;
+    },
+
     // --- Materials (Content Box) ---
     getMaterials: async () => {
         const response = await apiService.get('/organization-structure/materials');

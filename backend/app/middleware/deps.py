@@ -158,12 +158,14 @@ async def only_organization_or_moderator(
 
 
 async def only_teacher(
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
 ) -> User:
     """
-    Dependency: Only verified teacher can access
+    Dependency: Only verified teacher can access.
+    Uses direct DB query (not lazy relationship) to always get fresh status.
     """
-    from app.models.rbac_models import TeacherStatus
+    from app.models.rbac_models import TeacherProfile, TeacherStatus
     
     if current_user.role != UserRole.teacher:
         raise HTTPException(
@@ -171,11 +173,21 @@ async def only_teacher(
             detail="Teacher access required"
         )
     
-    # Check if teacher is approved
-    if current_user.teacher_profile and current_user.teacher_profile.verification_status != TeacherStatus.approved:
+    # Direct DB query — always reads latest status (important for Supabase edits)
+    teacher_profile = db.query(TeacherProfile).filter(
+        TeacherProfile.user_id == current_user.id
+    ).first()
+    
+    if not teacher_profile:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Teacher profile not found. Please contact support."
+        )
+    
+    if teacher_profile.verification_status != TeacherStatus.approved:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Teacher account not verified yet"
+            detail="Teacher account not verified yet. Please wait for approval."
         )
     
     return current_user

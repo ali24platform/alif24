@@ -26,6 +26,7 @@ import MathKidsAI from './pages/MathKidsAI';
 import DashboardLayout from './components/Dashboard/DashboardLayout';
 import LiveQuizStudent from './pages/LiveQuizStudent';
 import LiveQuizTeacher from './pages/LiveQuizTeacher';
+import OlympiadPage from './pages/OlympiadPage';
 import TestCreator from './test/TestCreator';
 import SmartAuthPrompt from './components/Auth/SmartAuthPrompt';
 import LoginModal from './components/Auth/LoginModal';
@@ -165,6 +166,13 @@ const AppRoutes = () => {
       <Route path="/live-quiz/create" element={
         <ProtectedRoute allowedRoles={['teacher', 'organization', 'moderator']}>
           <LiveQuizTeacher />
+        </ProtectedRoute>
+      } />
+
+      {/* Olympiad */}
+      <Route path="/olympiad" element={
+        <ProtectedRoute allowedRoles={['student', 'parent', 'teacher', 'organization', 'moderator']}>
+          <OlympiadPage />
         </ProtectedRoute>
       } />
 

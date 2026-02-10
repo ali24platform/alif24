@@ -114,6 +114,9 @@ class User(Base):
     role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.student)
     status = Column(SQLEnum(AccountStatus), default=AccountStatus.active)
     
+    # Auth token storage
+    refresh_token = Column(Text, nullable=True)
+    
     # Settings
     language = Column(String(5), default="uz")
     timezone = Column(String(50), default="Asia/Tashkent")
@@ -185,6 +188,7 @@ class User(Base):
         return {
             "id": str(self.id),
             "email": self.email,
+            "phone": self.phone,
             "username": self.username,
             "first_name": self.first_name,
             "last_name": self.last_name,

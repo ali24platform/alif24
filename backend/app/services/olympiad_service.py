@@ -487,16 +487,19 @@ class OlympiadService:
         """
         Check if student has active subscription via parent.
         """
-        # Get parent
+        if not student_profile.parent_user_id:
+            return False
+        
+        # Get parent profile via parent_user_id (User.id -> ParentProfile.user_id)
         parent_profile = self.db.query(ParentProfile).filter(
-            ParentProfile.id == student_profile.parent_id
+            ParentProfile.user_id == student_profile.parent_user_id
         ).first()
         
         if not parent_profile:
             return False
         
-        # Check subscription_status field
-        return parent_profile.subscription_status in ['active', 'trial']
+        # Check subscription_plan field
+        return parent_profile.subscription_plan in ['basic', 'premium', 'trial']
     
     def _calculate_rankings(self, olympiad_id: UUID):
         """

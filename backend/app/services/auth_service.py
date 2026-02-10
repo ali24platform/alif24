@@ -71,12 +71,19 @@ class AuthService:
     
     def _create_role_profile(self, user: User):
         """Create role-specific profile"""
+        from app.models.rbac_models import OrganizationProfile, ModeratorProfile, ModeratorRoleType
         if user.role == UserRole.moderator:
-            # Moderator doesn't need additional profile initially
-            pass
+            mod_profile = ModeratorProfile(
+                user_id=user.id,
+                role_type=ModeratorRoleType.methodist
+            )
+            self.db.add(mod_profile)
         elif user.role == UserRole.organization:
-            # Organization doesn't need additional profile initially
-            pass
+            org_profile = OrganizationProfile(
+                user_id=user.id,
+                name=f"{user.first_name} {user.last_name}"
+            )
+            self.db.add(org_profile)
         elif user.role == UserRole.student:
             student = StudentProfile(user_id=user.id)
             self.db.add(student)

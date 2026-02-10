@@ -339,6 +339,10 @@ const TeacherDashboard = () => {
           <FileText size={20} />
           <span>🤖 TestAI</span>
         </button>
+        <button className={`nav-item`} onClick={() => navigate('/live-quiz/create')} style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white' }}>
+          <Award size={20} />
+          <span>🎯 Live Quiz</span>
+        </button>
         <button className={`nav-item ${activeTab === 'messages' ? 'active' : ''}`} onClick={() => setActiveTab('messages')}>
           <MessageSquare size={20} />
           <span>Xabarlar</span>

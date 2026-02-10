@@ -92,11 +92,11 @@ class TeacherService {
     }
 
     async getClassrooms() {
-        return apiService.get('/teachers/classrooms');
+        return apiService.get('/teachers/my-classes');
     }
 
     async updateProfile(data) {
-        return apiService.put('/auth/profile', data);
+        return apiService.put('/auth/me', data);
     }
 
     async uploadAvatar(formData) {
@@ -104,7 +104,7 @@ class TeacherService {
     }
 
     async changePassword(data) {
-        return apiService.post('/auth/change-password', data);
+        return apiService.put('/auth/password', data);
     }
 
     async createAssignment(data) {

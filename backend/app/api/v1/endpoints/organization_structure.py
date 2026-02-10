@@ -9,7 +9,7 @@ import string
 from app.core.database import get_db
 from app.middleware.deps import only_organization
 from app.models.rbac_models import (
-    User, TeacherProfile, StudentProfile, OrganizationMaterial, OrganizationSubscription, UserRole, AccountStatus
+    User, TeacherProfile, StudentProfile, OrganizationProfile, OrganizationMaterial, OrganizationSubscription, UserRole, AccountStatus
 )
 from app.services.notification_service import NotificationService
 from pydantic import BaseModel
@@ -39,6 +39,8 @@ class MaterialResponse(MaterialCreate):
     created_at: datetime
     created_by_id: Optional[UUID]
 
+    model_config = {"from_attributes": True}
+
 # --- Endpoints ---
 
 @router.post("/students/invite")
@@ -51,7 +53,9 @@ async def invite_student_to_organization(
     Invite a new student to the organization.
     Creates a User and StudentProfile, sends credentials via SMS/Email.
     """
-    org_profile = current_user.organization_profile
+    org_profile = db.query(OrganizationProfile).filter(
+        OrganizationProfile.user_id == current_user.id
+    ).first()
     if not org_profile:
         raise HTTPException(status_code=400, detail="Organization profile not found")
     
@@ -111,15 +115,21 @@ def add_teacher_to_organization(
     db: Session = Depends(get_db)
 ):
     """
-    Link a teacher to the organization
+    Link a teacher to the organization.
+    teacher_id can be either teacher_profiles.id OR users.id (both UUID accepted)
     """
-    org_profile = current_user.organization_profile
+    org_profile = db.query(OrganizationProfile).filter(
+        OrganizationProfile.user_id == current_user.id
+    ).first()
     if not org_profile:
         raise HTTPException(status_code=400, detail="Organization profile not found")
 
+    # Try teacher_profiles.id first, then users.id
     teacher = db.query(TeacherProfile).filter(TeacherProfile.id == request.teacher_id).first()
     if not teacher:
-        raise HTTPException(status_code=404, detail="Teacher not found")
+        teacher = db.query(TeacherProfile).filter(TeacherProfile.user_id == request.teacher_id).first()
+    if not teacher:
+        raise HTTPException(status_code=404, detail="O'qituvchi topilmadi. UUID users yoki teacher_profiles jadvalidan bo'lishi kerak.")
     
     # Check limit based on subscription
     subscription = db.query(OrganizationSubscription).filter(
@@ -143,7 +153,9 @@ def remove_teacher_from_organization(
     current_user: User = Depends(only_organization),
     db: Session = Depends(get_db)
 ):
-    org_profile = current_user.organization_profile
+    org_profile = db.query(OrganizationProfile).filter(
+        OrganizationProfile.user_id == current_user.id
+    ).first()
     if not org_profile:
         raise HTTPException(status_code=400, detail="Organization profile not found")
     
@@ -164,12 +176,30 @@ def get_organization_teachers(
     current_user: User = Depends(only_organization),
     db: Session = Depends(get_db)
 ):
-    org_profile = current_user.organization_profile
+    org_profile = db.query(OrganizationProfile).filter(
+        OrganizationProfile.user_id == current_user.id
+    ).first()
     if not org_profile:
         raise HTTPException(status_code=400, detail="Organization profile not found")
     
     teachers = db.query(TeacherProfile).filter(TeacherProfile.organization_id == org_profile.id).all()
-    return teachers
+    result = []
+    for t in teachers:
+        user = t.user
+        result.append({
+            "id": str(t.id),
+            "user_id": str(t.user_id),
+            "first_name": user.first_name if user else "",
+            "last_name": user.last_name if user else "",
+            "email": user.email if user else None,
+            "phone": user.phone if user else None,
+            "specialization": t.specialization,
+            "verification_status": t.verification_status.value if t.verification_status else "pending",
+            "total_students": t.total_students,
+            "total_classrooms": t.total_classrooms,
+            "created_at": t.created_at.isoformat() if t.created_at else None
+        })
+    return result
 
 # --- Materials (Content Box) ---
 
@@ -182,7 +212,10 @@ def upload_material(
     current_user: User = Depends(only_organization),
     db: Session = Depends(get_db)
 ):
-    org_profile = current_user.organization_profile
+    # Direct DB query — reliable (lazy-load may return None)
+    org_profile = db.query(OrganizationProfile).filter(
+        OrganizationProfile.user_id == current_user.id
+    ).first()
     if not org_profile:
         raise HTTPException(status_code=400, detail="Organization profile not found")
     
@@ -204,7 +237,9 @@ def get_materials(
     current_user: User = Depends(only_organization),
     db: Session = Depends(get_db)
 ):
-    org_profile = current_user.organization_profile
+    org_profile = db.query(OrganizationProfile).filter(
+        OrganizationProfile.user_id == current_user.id
+    ).first()
     if not org_profile:
         raise HTTPException(status_code=400, detail="Organization profile not found")
     

@@ -116,7 +116,6 @@ async def child_login(
     
     # Update last login
     child.last_login_at = datetime.utcnow()
-    db.commit()
     
     # Generate tokens
     access_token = create_access_token(
@@ -125,6 +124,10 @@ async def child_login(
         child.role.value
     )
     refresh_token = create_refresh_token(str(child.id))
+    
+    # Save refresh token
+    child.refresh_token = refresh_token
+    db.commit()
     
     return {
         "success": True,

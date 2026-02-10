@@ -24,7 +24,6 @@ from app.models import (
 )
 from app.services.parent_service import ParentService
 from app.services.teacher_service_rbac import TeacherService
-from app.services.teacher_service_rbac import TeacherService
 from app.services.admin_service import AdminService
 from app.services.subscription_service import SubscriptionService
 
@@ -330,13 +329,13 @@ organization_router = APIRouter(prefix="/organization", tags=["Organization"])
 @organization_router.post("/approve-teacher/{teacher_id}")
 async def approve_teacher(
     teacher_id: UUID,
-    current_user: User = Depends(only_moderator),
+    current_user: User = Depends(only_organization_or_moderator),
     db: Session = Depends(get_db)
 ):
     """
     Approve a pending teacher account
     
-    - Only super_admin can access
+    - Organization or Moderator can access
     """
     service = AdminService(db)
     return service.approve_teacher(current_user.id, teacher_id)
@@ -346,7 +345,7 @@ async def approve_teacher(
 async def reject_teacher(
     teacher_id: UUID,
     request: RejectTeacherRequest,
-    current_user: User = Depends(only_moderator),
+    current_user: User = Depends(only_organization_or_moderator),
     db: Session = Depends(get_db)
 ):
     """

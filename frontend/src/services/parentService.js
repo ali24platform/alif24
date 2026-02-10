@@ -41,7 +41,7 @@ class ParentService {
      * @returns {Promise<Object>} Updated settings
      */
     async updateChildSettings(childId, settings) {
-        const response = await apiService.put(`/parents/children/${childId}/settings`, settings);
+        const response = await apiService.patch(`/parents/children/${childId}/settings`, settings);
         return response.data;
     }
 

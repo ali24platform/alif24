@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_WINDOW_MS: int = 900000
     RATE_LIMIT_MAX: int = 100
     
-    ADMIN_SECRET_KEY: str = "nurali_secret_2026"
+    ADMIN_SECRET_KEY: str = "alif24_rahbariyat26!"
 
     # Notification Services
     ESKIZ_EMAIL: Optional[str] = "example@eskiz.uz"

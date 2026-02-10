@@ -36,13 +36,34 @@ const LessonBuilder = () => {
     const [subjects, setSubjects] = useState([]);
 
     useEffect(() => {
-        // Load subjects
-        // teacherService.getSubjects().then(setSubjects).catch(console.error);
-        // Mock for now
-        setSubjects([
-            { id: 'uuid-math', name: 'Matematika' },
-            { id: 'uuid-reading', name: 'O\'qish' }
-        ]);
+        const loadSubjects = async () => {
+            try {
+                const data = await teacherService.getClassrooms();
+                const classrooms = data?.data || data || [];
+                if (Array.isArray(classrooms) && classrooms.length > 0) {
+                    setSubjects(classrooms.map(c => ({ id: c.id, name: c.subject || c.name })));
+                } else {
+                    setSubjects([
+                        { id: 'matematika', name: 'Matematika' },
+                        { id: 'ona-tili', name: 'Ona tili' },
+                        { id: 'ingliz-tili', name: 'Ingliz tili' },
+                        { id: 'tabiiy-fanlar', name: 'Tabiiy fanlar' },
+                        { id: 'tarix', name: 'Tarix' },
+                        { id: 'informatika', name: 'Informatika' }
+                    ]);
+                }
+            } catch {
+                setSubjects([
+                    { id: 'matematika', name: 'Matematika' },
+                    { id: 'ona-tili', name: 'Ona tili' },
+                    { id: 'ingliz-tili', name: 'Ingliz tili' },
+                    { id: 'tabiiy-fanlar', name: 'Tabiiy fanlar' },
+                    { id: 'tarix', name: 'Tarix' },
+                    { id: 'informatika', name: 'Informatika' }
+                ]);
+            }
+        };
+        loadSubjects();
     }, []);
 
     const handleLessonChange = (e) => {

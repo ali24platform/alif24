@@ -41,6 +41,10 @@ const OrganizationDashboard = () => {
     const [uploadTitle, setUploadTitle] = useState('');
     const [uploadFileUrl, setUploadFileUrl] = useState('');
 
+    const [showEditLeadModal, setShowEditLeadModal] = useState(false);
+    const [editingLead, setEditingLead] = useState(null);
+    const [editLeadData, setEditLeadData] = useState({ first_name: '', last_name: '', phone: '', notes: '' });
+
     // Load Data
     const loadData = async () => {
         setLoading(true);
@@ -96,6 +100,29 @@ const OrganizationDashboard = () => {
         } catch (error) {
             console.error("CRM Update failed", error);
             loadData();
+        }
+    };
+
+    const handleCRMEdit = (lead) => {
+        setEditingLead(lead);
+        setEditLeadData({
+            first_name: lead.first_name || '',
+            last_name: lead.last_name || '',
+            phone: lead.phone || '',
+            notes: lead.notes || ''
+        });
+        setShowEditLeadModal(true);
+    };
+
+    const handleSaveLeadEdit = async (e) => {
+        e.preventDefault();
+        try {
+            await crmService.updateLead(editingLead.id, editLeadData);
+            setLeads(prev => prev.map(l => l.id === editingLead.id ? { ...l, ...editLeadData } : l));
+            setShowEditLeadModal(false);
+            setEditingLead(null);
+        } catch (error) {
+            alert('Tahrirlashda xatolik: ' + error.message);
         }
     };
 
@@ -381,7 +408,7 @@ const OrganizationDashboard = () => {
                         <CRMBoard
                             leads={leads}
                             onStatusChange={handleCRMStatusChange}
-                            onEdit={(lead) => console.log("Edit lead", lead)}
+                            onEdit={handleCRMEdit}
                             onDelete={handleCRMDelete}
                         />
                     </div>
@@ -729,6 +756,72 @@ const OrganizationDashboard = () => {
                                         className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
                                     >
                                         Taklif Qilish
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Edit Lead Modal */}
+                {showEditLeadModal && editingLead && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fadeIn">
+                        <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+                            <h3 className="text-lg font-bold mb-4">Lidni Tahrirlash</h3>
+                            <form onSubmit={handleSaveLeadEdit}>
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Ism</label>
+                                        <input
+                                            type="text"
+                                            value={editLeadData.first_name}
+                                            onChange={e => setEditLeadData({ ...editLeadData, first_name: e.target.value })}
+                                            className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Familiya</label>
+                                        <input
+                                            type="text"
+                                            value={editLeadData.last_name}
+                                            onChange={e => setEditLeadData({ ...editLeadData, last_name: e.target.value })}
+                                            className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium mb-1">Telefon</label>
+                                    <input
+                                        type="tel"
+                                        value={editLeadData.phone}
+                                        onChange={e => setEditLeadData({ ...editLeadData, phone: e.target.value })}
+                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        required
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium mb-1">Izohlar</label>
+                                    <textarea
+                                        value={editLeadData.notes}
+                                        onChange={e => setEditLeadData({ ...editLeadData, notes: e.target.value })}
+                                        className="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none h-24 resize-none"
+                                        placeholder="Qo'shimcha ma'lumot..."
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowEditLeadModal(false); setEditingLead(null); }}
+                                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded transition"
+                                    >
+                                        Bekor qilish
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                                    >
+                                        Saqlash
                                     </button>
                                 </div>
                             </form>

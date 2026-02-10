@@ -34,7 +34,7 @@ class ApiService {
    * @param {Response} response - Fetch response
    * @returns {Promise<Object>} Parsed response data
    */
-  async handleResponse(response) {
+  async handleResponse(response, retryFn = null) {
     const contentType = response.headers.get('content-type') || '';
 
     if (!contentType.includes('application/json')) {
@@ -47,15 +47,26 @@ class ApiService {
     const data = await response.json();
 
     if (!response.ok) {
-      // Handle token expiration
-      if (response.status === 401 && data.error?.code === 'TOKEN_EXPIRED') {
-        const refreshed = await this.refreshToken();
-        if (!refreshed) {
-          window.dispatchEvent(new CustomEvent('showLoginModal', {
-            detail: { message: 'Sessiya muddati tugadi. Iltimos, qayta kiring.' }
-          }));
-          window.location.href = '/';
-          throw new Error('Session expired');
+      // Handle token expiration with automatic retry
+      if (response.status === 401) {
+        const isTokenExpired = data.error?.code === 'TOKEN_EXPIRED' || data.detail === 'Not authenticated' || data.detail === 'Could not validate credentials';
+        if (isTokenExpired && !this._isRetrying) {
+          this._isRetrying = true;
+          try {
+            const refreshed = await this.refreshToken();
+            if (refreshed && retryFn) {
+              return await retryFn();
+            }
+            if (!refreshed) {
+              window.dispatchEvent(new CustomEvent('showLoginModal', {
+                detail: { message: 'Sessiya muddati tugadi. Iltimos, qayta kiring.' }
+              }));
+              window.location.href = '/';
+              throw new Error('Session expired');
+            }
+          } finally {
+            this._isRetrying = false;
+          }
         }
       }
 
@@ -118,12 +129,14 @@ class ApiService {
       }
     });
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: this.getHeaders()
-    });
-
-    return this.handleResponse(response);
+    const doFetch = async () => {
+      const resp = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+      return this.handleResponse(resp, doFetch);
+    };
+    return doFetch();
   }
 
   /**
@@ -134,13 +147,15 @@ class ApiService {
    */
   async post(endpoint, data = {}) {
     const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'POST',
-      headers: this.getHeaders(isFormData),
-      body: isFormData ? data : JSON.stringify(data)
-    });
-
-    return this.handleResponse(response);
+    const doFetch = async () => {
+      const resp = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: this.getHeaders(isFormData),
+        body: isFormData ? data : JSON.stringify(data)
+      });
+      return this.handleResponse(resp, doFetch);
+    };
+    return doFetch();
   }
 
   /**
@@ -151,13 +166,15 @@ class ApiService {
    */
   async put(endpoint, data = {}) {
     const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'PUT',
-      headers: this.getHeaders(isFormData),
-      body: isFormData ? data : JSON.stringify(data)
-    });
-
-    return this.handleResponse(response);
+    const doFetch = async () => {
+      const resp = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'PUT',
+        headers: this.getHeaders(isFormData),
+        body: isFormData ? data : JSON.stringify(data)
+      });
+      return this.handleResponse(resp, doFetch);
+    };
+    return doFetch();
   }
 
   /**
@@ -166,16 +183,15 @@ class ApiService {
    * @returns {Promise<Object>} Response data
    */
   async delete(endpoint) {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      method: 'DELETE',
-      headers: this.getHeaders()
-    });
-
-    if (response.status === 204) {
-      return { success: true };
-    }
-
-    return this.handleResponse(response);
+    const doFetch = async () => {
+      const resp = await fetch(`${this.baseUrl}${endpoint}`, {
+        method: 'DELETE',
+        headers: this.getHeaders()
+      });
+      if (resp.status === 204) return { success: true };
+      return this.handleResponse(resp, doFetch);
+    };
+    return doFetch();
   }
 }
 

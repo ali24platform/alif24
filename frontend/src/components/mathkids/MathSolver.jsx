@@ -1,7 +1,14 @@
 import React, { useState, useRef } from "react";
 import "./MathSolver.css";
 import ImageCropper from "./ImageCropper";
-import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk";
+// Lazy-loaded: microsoft-cognitiveservices-speech-sdk (~30MB)
+let SpeechSDK = null;
+const loadSpeechSDK = async () => {
+  if (!SpeechSDK) {
+    SpeechSDK = await import("microsoft-cognitiveservices-speech-sdk");
+  }
+  return SpeechSDK;
+};
 
 export default function MathSolver() {
   const [mode, setMode] = useState("input"); // "input", "list", "solving"
@@ -168,15 +175,16 @@ const SPEECH_TOKEN_URL = import.meta.env.VITE_API_URL
 
   const startVoiceRecognition = async () => {
     try {
+      const sdk = await loadSpeechSDK();
       const tokenRes = await fetch(SPEECH_TOKEN_URL);
       if (!tokenRes.ok) throw new Error("Token olishda xatolik");
 
       const { token, region } = await tokenRes.json();
-      const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, region);
+      const speechConfig = sdk.SpeechConfig.fromAuthorizationToken(token, region);
       speechConfig.speechRecognitionLanguage = "uz-UZ";
 
-      const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-      const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+      const audioConfig = sdk.AudioConfig.fromDefaultMicrophoneInput();
+      const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
       recognizerRef.current = recognizer;
 
       setIsRecording(true);
@@ -184,7 +192,7 @@ const SPEECH_TOKEN_URL = import.meta.env.VITE_API_URL
       recognizer.recognizeOnceAsync(
         (result) => {
           setIsRecording(false);
-          if (result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+          if (result.reason === sdk.ResultReason.RecognizedSpeech) {
             setUserAnswer(result.text);
           }
           recognizer.close();

@@ -6,7 +6,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import LoginModal from '../Auth/LoginModal';
 import RegisterModal from '../Auth/RegisterModal';
 import AchievementsModal from './AchievementsModal';
-// import { useStarsManager } from '../../hooks/useStarsManager'; // TODO: Create this hook
+import { useStarsManager } from '../../hooks/useStarsManager';
 
 /**
  * Navigation Bar Component
@@ -27,11 +27,7 @@ const Navbar = () => {
   const [achievementsModalOpen, setAchievementsModalOpen] = useState(false);
   const languageDropdownRef = useRef(null);
 
-  // const { totalStars, starsBreakdown, updateStars, getStarsHistory } = useStarsManager(); // TODO: Implement
-  const totalStars = 0; // Temporary placeholder
-  const starsBreakdown = { harf: 0, math: 0, ertak: 0 }; // Temporary placeholder
-  const updateStars = () => { }; // Temporary placeholder
-  const getStarsHistory = () => []; // Temporary placeholder
+  const { totalStars, starsBreakdown, updateStars, getStarsHistory } = useStarsManager();
 
   // Language configurations with flags
   const languages = {

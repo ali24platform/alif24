@@ -20,6 +20,29 @@ const TeacherDashboard = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
+  // Settings state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editProfileData, setEditProfileData] = useState({});
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordData, setPasswordData] = useState({ current: '', new_password: '', confirm: '' });
+  const [settingsToggles, setSettingsToggles] = useState(() => {
+    const saved = localStorage.getItem('teacher_settings');
+    return saved ? JSON.parse(saved) : {
+      twoFactor: false, emailNotif: true, pushNotif: true, smsNotif: false, darkMode: false
+    };
+  });
+
+  // Student detail & messaging state
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [showStudentModal, setShowStudentModal] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [messageRecipient, setMessageRecipient] = useState(null);
+
+  // Assignment creation state
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+  const [newAssignment, setNewAssignment] = useState({ title: '', description: '', dueDate: '', classId: '' });
+
   // Verification Status
   const isVerified = user?.teacher_profile?.verification_status === 'approved';
   const isPending = user?.teacher_profile?.verification_status === 'pending';
@@ -147,6 +170,124 @@ const TeacherDashboard = () => {
     } catch (error) {
       console.error(error);
       alert("Xatolik: " + (error.message || "Qo'shib bo'lmadi"));
+    }
+  };
+
+  // Profile edit handlers
+  const handleStartEditProfile = () => {
+    setEditProfileData({ ...teacherData });
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      await teacherService.updateProfile({
+        first_name: editProfileData.name?.split(' ')[0],
+        last_name: editProfileData.name?.split(' ').slice(1).join(' '),
+        phone: editProfileData.phone
+      });
+      window.appAlert('Profil muvaffaqiyatli yangilandi!');
+      setIsEditingProfile(false);
+    } catch (error) {
+      window.appAlert('Profilni yangilashda xatolik: ' + error.message);
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      window.appAlert('Rasm hajmi 2MB dan oshmasligi kerak');
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      await teacherService.uploadAvatar(formData);
+      window.appAlert('Avatar muvaffaqiyatli yuklandi!');
+    } catch (error) {
+      window.appAlert('Avatar yuklashda xatolik: ' + error.message);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordData.new_password !== passwordData.confirm) {
+      window.appAlert('Yangi parollar mos kelmaydi!');
+      return;
+    }
+    if (passwordData.new_password.length < 6) {
+      window.appAlert('Parol kamida 6 belgidan iborat bo\'lishi kerak');
+      return;
+    }
+    try {
+      await teacherService.changePassword({
+        current_password: passwordData.current,
+        new_password: passwordData.new_password
+      });
+      window.appAlert('Parol muvaffaqiyatli o\'zgartirildi!');
+      setShowPasswordModal(false);
+      setPasswordData({ current: '', new_password: '', confirm: '' });
+    } catch (error) {
+      window.appAlert('Parolni o\'zgartirishda xatolik: ' + error.message);
+    }
+  };
+
+  const handleToggleSetting = (key) => {
+    setSettingsToggles(prev => {
+      const updated = { ...prev, [key]: !prev[key] };
+      localStorage.setItem('teacher_settings', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Assignment creation
+  const handleCreateAssignment = async () => {
+    if (!newAssignment.title) {
+      window.appAlert('Topshiriq nomini kiriting!');
+      return;
+    }
+    try {
+      const data = {
+        title: newAssignment.title,
+        description: newAssignment.description,
+        due_date: newAssignment.dueDate,
+        classroom_id: newAssignment.classId || classes[0]?.id
+      };
+      await teacherService.createAssignment(data);
+      window.appAlert('Topshiriq muvaffaqiyatli yaratildi!');
+      setShowAssignmentModal(false);
+      setNewAssignment({ title: '', description: '', dueDate: '', classId: '' });
+      fetchDashboardData();
+    } catch (error) {
+      window.appAlert('Topshiriq yaratishda xatolik: ' + error.message);
+    }
+  };
+
+  // Student detail view
+  const handleViewStudent = (student) => {
+    setSelectedStudent(student);
+    setShowStudentModal(true);
+  };
+
+  // Messaging
+  const handleOpenMessage = (recipient) => {
+    setMessageRecipient(recipient);
+    setMessageText('');
+    setShowMessageModal(true);
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim()) return;
+    try {
+      await teacherService.sendMessage({
+        to_user_id: messageRecipient?.id,
+        message: messageText
+      });
+      window.appAlert('Xabar yuborildi!');
+      setShowMessageModal(false);
+      setMessageText('');
+    } catch (error) {
+      window.appAlert('Xabar yuborishda xatolik: ' + error.message);
     }
   };
 
@@ -338,7 +479,7 @@ const TeacherDashboard = () => {
         <div className="card assignments-card">
           <div className="card-header">
             <h2>Topshiriqlar holati</h2>
-            <button className="btn-primary btn-sm">
+            <button className="btn-primary btn-sm" onClick={() => setShowAssignmentModal(true)}>
               <Plus size={16} />
               Yangi topshiriq
             </button>
@@ -566,9 +707,9 @@ const TeacherDashboard = () => {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button className="icon-btn"><Eye size={16} /></button>
-                      <button className="icon-btn"><MessageSquare size={16} /></button>
-                      <button className="icon-btn"><Edit size={16} /></button>
+                      <button className="icon-btn" title="Ko'rish" onClick={() => handleViewStudent(student)}><Eye size={16} /></button>
+                      <button className="icon-btn" title="Xabar" onClick={() => handleOpenMessage(student)}><MessageSquare size={16} /></button>
+                      <button className="icon-btn" title="Tahrirlash" onClick={() => handleViewStudent(student)}><Edit size={16} /></button>
                     </div>
                   </td>
                 </tr>
@@ -585,7 +726,7 @@ const TeacherDashboard = () => {
         <div className="messages-list">
           <div className="messages-header">
             <h2>Xabarlar</h2>
-            <button className="btn-primary btn-sm">
+            <button className="btn-primary btn-sm" onClick={() => { setMessageRecipient(null); setMessageText(''); setShowMessageModal(true); }}>
               <Plus size={16} />
               Yangi
             </button>
@@ -615,6 +756,23 @@ const TeacherDashboard = () => {
     </div>
   );
 
+  const ToggleSwitch = ({ active, onToggle }) => (
+    <div
+      onClick={onToggle}
+      className="toggle-switch-wrapper"
+      style={{
+        width: '44px', height: '24px', borderRadius: '12px', cursor: 'pointer',
+        background: active ? '#10b981' : '#d1d5db', position: 'relative', transition: 'background 0.2s'
+      }}
+    >
+      <div style={{
+        width: '20px', height: '20px', borderRadius: '50%', background: 'white',
+        position: 'absolute', top: '2px', left: active ? '22px' : '2px',
+        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+      }} />
+    </div>
+  );
+
   const SettingsView = () => (
     <div className="settings-view">
       <h2>Shaxsiy kabinet va sozlamalar</h2>
@@ -623,30 +781,55 @@ const TeacherDashboard = () => {
         <div className="card profile-card">
           <div className="card-header">
             <h3>Profil ma'lumotlari</h3>
-            <button className="btn-text">Tahrirlash</button>
+            {isEditingProfile ? (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn-text" onClick={() => setIsEditingProfile(false)}>Bekor</button>
+                <button className="btn-primary btn-sm" onClick={handleSaveProfile}>Saqlash</button>
+              </div>
+            ) : (
+              <button className="btn-text" onClick={handleStartEditProfile}>
+                <Edit size={14} /> Tahrirlash
+              </button>
+            )}
           </div>
           <div className="profile-content">
             <div className="profile-avatar-section">
               <div className="profile-avatar-large">
                 {user?.avatar ? <img src={user.avatar} alt="Profile" /> : user?.first_name?.charAt(0)}
               </div>
-              <button className="btn-secondary btn-sm">
+              <label className="btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
                 <Camera size={16} />
                 Rasmni o'zgartirish
-              </button>
+                <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
+              </label>
             </div>
             <div className="profile-details">
               <div className="detail-row">
                 <label>To'liq ism</label>
-                <input type="text" value={teacherData.name} readOnly />
+                <input type="text"
+                  value={isEditingProfile ? editProfileData.name : teacherData.name}
+                  onChange={e => setEditProfileData({ ...editProfileData, name: e.target.value })}
+                  readOnly={!isEditingProfile}
+                  style={isEditingProfile ? { border: '2px solid #6366f1', background: '#f8fafc' } : {}}
+                />
               </div>
               <div className="detail-row">
                 <label>Lavozim</label>
-                <input type="text" value={teacherData.position} readOnly />
+                <input type="text"
+                  value={isEditingProfile ? editProfileData.position : teacherData.position}
+                  onChange={e => setEditProfileData({ ...editProfileData, position: e.target.value })}
+                  readOnly={!isEditingProfile}
+                  style={isEditingProfile ? { border: '2px solid #6366f1', background: '#f8fafc' } : {}}
+                />
               </div>
               <div className="detail-row">
                 <label>Mutaxassislik</label>
-                <input type="text" value={teacherData.specialty} readOnly />
+                <input type="text"
+                  value={isEditingProfile ? editProfileData.specialty : teacherData.specialty}
+                  onChange={e => setEditProfileData({ ...editProfileData, specialty: e.target.value })}
+                  readOnly={!isEditingProfile}
+                  style={isEditingProfile ? { border: '2px solid #6366f1', background: '#f8fafc' } : {}}
+                />
               </div>
               <div className="detail-row">
                 <label>Email</label>
@@ -654,7 +837,12 @@ const TeacherDashboard = () => {
               </div>
               <div className="detail-row">
                 <label>Telefon</label>
-                <input type="tel" value={teacherData.phone} readOnly />
+                <input type="tel"
+                  value={isEditingProfile ? editProfileData.phone : teacherData.phone}
+                  onChange={e => setEditProfileData({ ...editProfileData, phone: e.target.value })}
+                  readOnly={!isEditingProfile}
+                  style={isEditingProfile ? { border: '2px solid #6366f1', background: '#f8fafc' } : {}}
+                />
               </div>
             </div>
           </div>
@@ -665,14 +853,14 @@ const TeacherDashboard = () => {
             <h3>Xavfsizlik sozlamalari</h3>
           </div>
           <div className="settings-section">
-            <button className="setting-item">
+            <button className="setting-item" onClick={() => setShowPasswordModal(true)}>
               <span>Parolni o'zgartirish</span>
               <ChevronDown size={18} />
             </button>
-            <button className="setting-item">
+            <div className="setting-item">
               <span>Ikki bosqichli autentifikatsiya</span>
-              <div className="toggle-switch"></div>
-            </button>
+              <ToggleSwitch active={settingsToggles.twoFactor} onToggle={() => handleToggleSetting('twoFactor')} />
+            </div>
           </div>
         </div>
 
@@ -681,18 +869,18 @@ const TeacherDashboard = () => {
             <h3>Bildirishnomalar</h3>
           </div>
           <div className="settings-section">
-            <button className="setting-item">
+            <div className="setting-item">
               <span>Email bildirishnomalar</span>
-              <div className="toggle-switch active"></div>
-            </button>
-            <button className="setting-item">
+              <ToggleSwitch active={settingsToggles.emailNotif} onToggle={() => handleToggleSetting('emailNotif')} />
+            </div>
+            <div className="setting-item">
               <span>Push bildirishnomalar</span>
-              <div className="toggle-switch active"></div>
-            </button>
-            <button className="setting-item">
+              <ToggleSwitch active={settingsToggles.pushNotif} onToggle={() => handleToggleSetting('pushNotif')} />
+            </div>
+            <div className="setting-item">
               <span>SMS bildirishnomalar</span>
-              <div className="toggle-switch"></div>
-            </button>
+              <ToggleSwitch active={settingsToggles.smsNotif} onToggle={() => handleToggleSetting('smsNotif')} />
+            </div>
           </div>
         </div>
 
@@ -702,20 +890,39 @@ const TeacherDashboard = () => {
           </div>
           <div className="settings-section">
             <div className="setting-item">
-              <label>Til</label>
-              <select>
-                <option>O'zbekcha</option>
-                <option>Русский</option>
-                <option>English</option>
-              </select>
-            </div>
-            <button className="setting-item">
               <span>Qorong'i rejim</span>
-              <div className="toggle-switch"></div>
-            </button>
+              <ToggleSwitch active={settingsToggles.darkMode} onToggle={() => handleToggleSetting('darkMode')} />
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="modal-overlay" style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000
+        }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '400px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '16px' }}>Parolni o'zgartirish</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input type="password" placeholder="Joriy parol" value={passwordData.current}
+                onChange={e => setPasswordData({ ...passwordData, current: e.target.value })}
+                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} />
+              <input type="password" placeholder="Yangi parol" value={passwordData.new_password}
+                onChange={e => setPasswordData({ ...passwordData, new_password: e.target.value })}
+                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} />
+              <input type="password" placeholder="Yangi parolni tasdiqlang" value={passwordData.confirm}
+                onChange={e => setPasswordData({ ...passwordData, confirm: e.target.value })}
+                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowPasswordModal(false)} className="btn-text">Bekor</button>
+              <button onClick={handleChangePassword} className="btn-primary">O'zgartirish</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -1875,6 +2082,103 @@ const TeacherDashboard = () => {
           {renderContent()}
         </div>
       </div>
+
+      {/* Assignment Creation Modal */}
+      {showAssignmentModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '16px' }}>Yangi topshiriq yaratish</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <input type="text" placeholder="Topshiriq nomi" value={newAssignment.title}
+                onChange={e => setNewAssignment({ ...newAssignment, title: e.target.value })}
+                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} />
+              <textarea placeholder="Tavsif (ixtiyoriy)" value={newAssignment.description}
+                onChange={e => setNewAssignment({ ...newAssignment, description: e.target.value })}
+                rows={3} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', resize: 'none' }} />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Muddat</label>
+                  <input type="date" value={newAssignment.dueDate}
+                    onChange={e => setNewAssignment({ ...newAssignment, dueDate: e.target.value })}
+                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', width: '100%' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Sinf</label>
+                  <select value={newAssignment.classId}
+                    onChange={e => setNewAssignment({ ...newAssignment, classId: e.target.value })}
+                    style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', width: '100%' }}>
+                    <option value="">Tanlang</option>
+                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAssignmentModal(false)} className="btn-text">Bekor</button>
+              <button onClick={handleCreateAssignment} className="btn-primary">Yaratish</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Student Detail Modal */}
+      {showStudentModal && selectedStudent && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '500px', maxWidth: '90%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3>O'quvchi ma'lumotlari</h3>
+              <button onClick={() => setShowStudentModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+            </div>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#6366f1', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 'bold' }}>
+                {selectedStudent.first_name?.charAt(0)}
+              </div>
+              <div>
+                <h4 style={{ margin: 0 }}>{selectedStudent.first_name} {selectedStudent.last_name}</h4>
+                <p style={{ margin: '4px 0 0', color: '#666' }}>{selectedStudent.email || selectedStudent.username || 'Sinf: ' + (selectedStudent.class_name || '-')}</p>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#666' }}>O'rtacha baho</p>
+                <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>{selectedStudent.average_grade || '0'}</p>
+              </div>
+              <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '8px' }}>
+                <p style={{ fontSize: '12px', color: '#666' }}>Davomat</p>
+                <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#2563eb' }}>{selectedStudent.attendance || '0'}%</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => { setShowStudentModal(false); handleOpenMessage(selectedStudent); }} className="btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
+                <MessageSquare size={16} /> Xabar yuborish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Message Modal */}
+      {showMessageModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '16px', width: '450px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '16px' }}>
+              {messageRecipient ? `${messageRecipient.first_name} ${messageRecipient.last_name}ga xabar` : 'Yangi xabar'}
+            </h3>
+            {!messageRecipient && (
+              <input type="text" placeholder="Qabul qiluvchi (ism yoki email)" style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', width: '100%', marginBottom: '12px' }} />
+            )}
+            <textarea placeholder="Xabar matni..." value={messageText}
+              onChange={e => setMessageText(e.target.value)} rows={4}
+              style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', width: '100%', resize: 'none' }} />
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowMessageModal(false)} className="btn-text">Bekor</button>
+              <button onClick={handleSendMessage} className="btn-primary">
+                <Send size={16} /> Yuborish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

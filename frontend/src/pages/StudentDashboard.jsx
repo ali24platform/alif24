@@ -24,6 +24,8 @@ const StudentDashboard = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [timer, setTimer] = useState(0);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [selectedBook, setSelectedBook] = useState(null);
+    const [libraryFilter, setLibraryFilter] = useState('all');
 
     useEffect(() => {
         const fetchDashboard = async () => {
@@ -134,9 +136,23 @@ const StudentDashboard = () => {
     ];
 
     const books = [
-        { id: 1, title: 'Matematika 7-sinf', category: 'science', cover: <BookOpen size={48} className="text-blue-500" /> },
-        { id: 2, title: 'English Grammar', category: 'lang', cover: <Languages size={48} className="text-pink-500" /> },
-        { id: 3, title: 'Python for Kids', category: 'it', cover: <Laptop size={48} className="text-purple-500" /> }
+        { id: 1, title: 'Matematika 7-sinf', category: 'science', cover: <BookOpen size={48} className="text-blue-500" />, pages: 180, description: 'Algebra va geometriya asoslari, tenglamalar, funksiyalar.' },
+        { id: 2, title: 'English Grammar', category: 'lang', cover: <Languages size={48} className="text-pink-500" />, pages: 120, description: 'Ingliz tili grammatikasi — tenses, articles, prepositions.' },
+        { id: 3, title: 'Python for Kids', category: 'it', cover: <Laptop size={48} className="text-purple-500" />, pages: 200, description: 'Dasturlash asoslari — o\'zgaruvchilar, sikllar, funksiyalar.' },
+        { id: 4, title: 'Ona tili 7-sinf', category: 'lang', cover: <Book size={48} className="text-emerald-500" />, pages: 160, description: 'O\'zbek tili grammatikasi va adabiyot.' },
+        { id: 5, title: 'Tabiatshunoslik', category: 'science', cover: <Globe size={48} className="text-teal-500" />, pages: 150, description: 'Tabiat hodisalari, o\'simliklar va hayvonot olami.' },
+        { id: 6, title: 'Informatika', category: 'it', cover: <Laptop size={48} className="text-indigo-500" />, pages: 140, description: 'Kompyuter savodxonligi va dasturiy ta\'minot.' }
+    ];
+
+    const achievements = dashboardData?.achievements || [
+        { id: 1, title: 'Birinchi qadam', desc: 'Birinchi darsni yakunladingiz', icon: <Flag size={32} className="text-blue-500" />, earned: true },
+        { id: 2, title: 'Kitobxon', desc: '5 ta kitob o\'qidingiz', icon: <BookOpen size={32} className="text-emerald-500" />, earned: (dashboardData?.reading_stats?.total_sessions || 0) >= 5 },
+        { id: 3, title: 'Matematika ustasi', desc: '10 ta matematik masala yechdingiz', icon: <Target size={32} className="text-purple-500" />, earned: false },
+        { id: 4, title: 'Seriyali', desc: '7 kun ketma-ket kirdingiz', icon: <Flame size={32} className="text-orange-500" />, earned: (user.streak >= 7) },
+        { id: 5, title: 'Yulduz', desc: '100 ball to\'pladingiz', icon: <Star size={32} className="text-yellow-500" />, earned: (user.points >= 100) },
+        { id: 6, title: 'Tezkor', desc: 'Vazifani 5 daqiqada bajardingiz', icon: <Zap size={32} className="text-amber-500" />, earned: false },
+        { id: 7, title: 'Do\'stona', desc: 'Xabar yubordingiz', icon: <MessageCircle size={32} className="text-pink-500" />, earned: false },
+        { id: 8, title: 'Champion', desc: 'Sinf birinchisi bo\'ldingiz', icon: <Trophy size={32} className="text-yellow-600" />, earned: false }
     ];
 
     useEffect(() => {
@@ -264,16 +280,53 @@ const StudentDashboard = () => {
         </div>
     );
 
+    const filteredBooks = libraryFilter === 'all' ? books : books.filter(b => b.category === libraryFilter);
+
     const renderLibrary = () => (
         <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {books.map(book => (
-                    <div key={book.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all cursor-pointer group">
-                        <div className="aspect-[3/4] bg-gray-50 rounded-xl flex items-center justify-center text-6xl mb-3">{book.cover}</div>
+            <div className="flex gap-2 flex-wrap">
+                {Object.entries(t.library.filters).map(([key, label]) => (
+                    <button key={key} onClick={() => setLibraryFilter(key)}
+                        className={`px-4 py-2 rounded-full font-medium text-sm transition-all ${libraryFilter === key ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+                        {label}
+                    </button>
+                ))}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredBooks.map(book => (
+                    <div key={book.id} onClick={() => setSelectedBook(book)}
+                        className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group">
+                        <div className="aspect-[3/4] bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl flex items-center justify-center mb-3 group-hover:from-indigo-50 group-hover:to-purple-50 transition-all">
+                            {book.cover}
+                        </div>
                         <h3 className="font-bold text-gray-800 text-sm line-clamp-2">{book.title}</h3>
+                        <p className="text-xs text-gray-400 mt-1">{book.pages} sahifa</p>
                     </div>
                 ))}
             </div>
+
+            {selectedBook && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setSelectedBook(null)}>
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-xl font-bold text-gray-800">{selectedBook.title}</h3>
+                            <button onClick={() => setSelectedBook(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                        </div>
+                        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-8 flex items-center justify-center mb-4">
+                            {selectedBook.cover}
+                        </div>
+                        <p className="text-gray-600 text-sm mb-4">{selectedBook.description}</p>
+                        <div className="flex gap-4 text-sm text-gray-500 mb-6">
+                            <span className="flex items-center gap-1"><FileText size={14} /> {selectedBook.pages} sahifa</span>
+                            <span className="flex items-center gap-1"><BookOpen size={14} /> {selectedBook.category === 'science' ? 'Fanlar' : selectedBook.category === 'lang' ? 'Tillar' : 'IT'}</span>
+                        </div>
+                        <button onClick={() => { setSelectedBook(null); window.appAlert(`"${selectedBook.title}" kitobi ochilmoqda...`); }}
+                            className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
+                            <Play size={18} /> O'qishni boshlash
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 
@@ -322,20 +375,28 @@ const StudentDashboard = () => {
                                         <p className="text-sm text-gray-500">{task.deadline}</p>
                                     </div>
                                     {task.status === 'pending' && (
-                                        <button onClick={() => alert(`"${task.title}" vazifasi tez orada ochiladi`)} className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg font-medium hover:bg-blue-200 transition-colors">Bajarish</button>
+                                        <button onClick={() => window.appAlert(`"${task.title}" vazifasi tez orada ochiladi`)} className="px-4 py-2 bg-blue-100 text-blue-600 rounded-lg font-medium hover:bg-blue-200 transition-colors">Bajarish</button>
                                     )}
                                 </div>
                             ))}
                         </div>
                     )}
                     {activeTab === 'achievements' && (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="bg-white p-6 rounded-2xl text-center shadow-sm flex flex-col items-center">
-                                    <div className="mb-3"><Trophy size={48} className="text-yellow-500" /></div>
-                                    <h3 className="font-bold text-gray-800">Yutuq {i}</h3>
-                                </div>
-                            ))}
+                        <div>
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-gray-800">Yutuqlarim</h2>
+                                <span className="text-sm text-gray-500">{achievements.filter(a => a.earned).length}/{achievements.length} qo'lga kiritilgan</span>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {achievements.map(ach => (
+                                    <div key={ach.id} className={`bg-white p-6 rounded-2xl text-center shadow-sm flex flex-col items-center transition-all ${ach.earned ? 'border-2 border-yellow-300 shadow-yellow-100' : 'opacity-50 grayscale'}`}>
+                                        <div className={`mb-3 p-3 rounded-full ${ach.earned ? 'bg-yellow-50' : 'bg-gray-100'}`}>{ach.icon}</div>
+                                        <h3 className="font-bold text-gray-800 text-sm">{ach.title}</h3>
+                                        <p className="text-xs text-gray-500 mt-1">{ach.desc}</p>
+                                        {ach.earned && <span className="mt-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">Qo'lga kiritilgan</span>}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>

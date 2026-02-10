@@ -17,6 +17,7 @@ import {
 import CRMPage from './pages/crm/CRMPage';
 import Harf from './harf/Harf';
 import Harfr from './rharf/Harfr';
+import Eharf from './eharf/Eharf';
 import LetterMemoryGame from './lessiongames/LetterMemoryGame';
 import MathMonsterGame from './mathgames/MathMonsterGame';
 import KidsReadingPlatformMobile from './ertak/ertak';
@@ -32,6 +33,7 @@ import SecretAdminLogin from './pages/SecretAdminLogin';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 import ErrorBoundary from './components/Common/ErrorBoundary';
+import ToastManager from './components/Common/ToastManager';
 
 /**
  * Main App Component
@@ -42,6 +44,7 @@ const App = () => {
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <LanguageProvider>
           <AuthProvider>
+            <ToastManager />
             <AppRoutes />
           </AuthProvider>
         </LanguageProvider>
@@ -141,6 +144,7 @@ const AppRoutes = () => {
       {/* Harf learning page */}
       <Route path="/harf" element={<Harf />} />
       <Route path="/rharf" element={<Harfr />} />
+      <Route path="/eharf" element={<Eharf />} />
 
       {/* Games */}
       <Route path="/games/letter-memory" element={<LetterMemoryGame />} />

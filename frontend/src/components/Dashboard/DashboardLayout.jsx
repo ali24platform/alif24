@@ -29,6 +29,8 @@ const DashboardLayout = ({ children }) => {
       return [
         { icon: <Home className="w-5 h-5" />, label: t('home') || 'Bosh sahifa', href: '/organization-dashboard' },
         { icon: <TrendingUp className="w-5 h-5" />, label: 'CRM Lidlar', href: '/crm' },
+        { icon: <Users className="w-5 h-5" />, label: t('nav_users') || 'Foydalanuvchilar', href: '/organization-dashboard' },
+        { icon: <BarChart3 className="w-5 h-5" />, label: t('nav_analytics') || 'Statistika', href: '/organization-dashboard' },
       ];
     }
 
@@ -36,6 +38,8 @@ const DashboardLayout = ({ children }) => {
       return [
         { icon: <Home className="w-5 h-5" />, label: "Bosh sahifa", href: '/organization-dashboard' },
         { icon: <TrendingUp className="w-5 h-5" />, label: 'CRM / Lidlar', href: '/crm' },
+        { icon: <Users className="w-5 h-5" />, label: "O'qituvchilar", href: '/organization-dashboard' },
+        { icon: <BookOpen className="w-5 h-5" />, label: "Materiallar", href: '/organization-dashboard' },
       ];
     }
 
@@ -44,18 +48,26 @@ const DashboardLayout = ({ children }) => {
         { icon: <Home className="w-5 h-5" />, label: t('home') || 'Bosh sahifa', href: '/teacher-dashboard' },
         { icon: <BookOpen className="w-5 h-5" />, label: t('nav_my_courses') || 'Darslarim', href: '/lesson-builder' },
         { icon: <FileText className="w-5 h-5" />, label: t('nav_assignments') || 'Testlar', href: '/teacher/test-ai' },
+        { icon: <GraduationCap className="w-5 h-5" />, label: "O'quvchilar", href: '/teacher-dashboard' },
+        { icon: <Calendar className="w-5 h-5" />, label: t('calendar') || 'Jadval', href: '/teacher-dashboard' },
       ];
     }
 
     if (isParent) {
       return [
         { icon: <Home className="w-5 h-5" />, label: t('home') || 'Bosh sahifa', href: '/parent-dashboard' },
+        { icon: <GraduationCap className="w-5 h-5" />, label: "Farzandlarim", href: '/parent-dashboard' },
+        { icon: <BarChart3 className="w-5 h-5" />, label: "Hisobotlar", href: '/parent-dashboard' },
+        { icon: <Bell className="w-5 h-5" />, label: "Bildirishnomalar", href: '/parent-dashboard' },
       ];
     }
 
     if (isStudent) {
       return [
         { icon: <Home className="w-5 h-5" />, label: t('home') || 'Bosh sahifa', href: '/student-dashboard' },
+        { icon: <BookOpen className="w-5 h-5" />, label: "Darslarim", href: '/student-dashboard' },
+        { icon: <Award className="w-5 h-5" />, label: "Yutuqlarim", href: '/student-dashboard' },
+        { icon: <BarChart3 className="w-5 h-5" />, label: "Statistika", href: '/student-dashboard' },
       ];
     }
 

@@ -90,6 +90,35 @@ class TeacherService {
     async createQuiz(quizData) {
         return apiService.post('/teacher-tests', quizData);
     }
+
+    async getClassrooms() {
+        return apiService.get('/teachers/classrooms');
+    }
+
+    async updateProfile(data) {
+        return apiService.put('/auth/profile', data);
+    }
+
+    async uploadAvatar(formData) {
+        return apiService.post('/auth/avatar', formData);
+    }
+
+    async changePassword(data) {
+        return apiService.post('/auth/change-password', data);
+    }
+
+    async createAssignment(data) {
+        return apiService.post('/teacher-tests', {
+            title: data.title,
+            description: data.description,
+            due_date: data.due_date,
+            classroom_id: data.classroom_id
+        });
+    }
+
+    async sendMessage(data) {
+        return apiService.post('/messages', data);
+    }
 }
 
 export const teacherService = new TeacherService();

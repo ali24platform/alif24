@@ -15,6 +15,24 @@ const ParentDashboard = () => {
     const [newChild, setNewChild] = useState({ first_name: '', last_name: '', relationship: 'father' });
     const [createdChild, setCreatedChild] = useState(null);
 
+    // Notifications state
+    const [notifications, setNotifications] = useState([
+        { id: 1, title: 'Matematika bahosi yangilandi', desc: 'Ali 5 baho oldi', time: '2 soat oldin', read: false, type: 'grade' },
+        { id: 2, title: 'Yangi vazifa berildi', desc: 'Ingliz tili: New Words', time: '5 soat oldin', read: false, type: 'task' },
+        { id: 3, title: 'Haftalik hisobot tayyor', desc: 'Ali\'ning o\'tgan hafta natijalari', time: '1 kun oldin', read: true, type: 'report' },
+        { id: 4, title: 'Davomat ogohlantirishi', desc: 'Ali bugun 1-darsga kelmadi', time: '2 kun oldin', read: true, type: 'attendance' }
+    ]);
+
+    // Settings state
+    const [parentSettings, setParentSettings] = useState(() => {
+        const saved = localStorage.getItem('parent_settings');
+        return saved ? JSON.parse(saved) : {
+            emailNotif: true, pushNotif: true, smsNotif: false,
+            gradeAlerts: true, attendanceAlerts: true, taskAlerts: true,
+            weeklyReport: true, screenTimeLimit: false
+        };
+    });
+
     useEffect(() => {
         fetchChildren();
     }, []);
@@ -242,10 +260,127 @@ const ParentDashboard = () => {
                     {activeTab === 'dashboard' && renderDashboard()}
                     {activeTab === 'payments' && renderPayments()}
 
-                    {(activeTab === 'notifications' || activeTab === 'settings') && (
-                        <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
-                            <Settings size={48} className="mx-auto text-gray-300 mb-4" />
-                            <p className="text-gray-500">Tez orada...</p>
+                    {activeTab === 'notifications' && (
+                        <div className="max-w-3xl">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-gray-800">{t.tabs.notifications}</h2>
+                                <button onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                                    className="text-sm text-blue-600 font-medium hover:underline">
+                                    Barchasini o'qilgan deb belgilash
+                                </button>
+                            </div>
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                {notifications.length === 0 ? (
+                                    <div className="text-center py-16 text-gray-400">
+                                        <Bell size={48} className="mx-auto mb-3 opacity-30" />
+                                        <p>Xabarnomalar yo'q</p>
+                                    </div>
+                                ) : notifications.map(notif => (
+                                    <div key={notif.id}
+                                        onClick={() => setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n))}
+                                        className={`p-4 border-b border-gray-100 last:border-0 flex items-start gap-4 cursor-pointer hover:bg-gray-50 transition-colors ${!notif.read ? 'bg-blue-50/50' : ''}`}>
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                            notif.type === 'grade' ? 'bg-green-100 text-green-600' :
+                                            notif.type === 'task' ? 'bg-blue-100 text-blue-600' :
+                                            notif.type === 'report' ? 'bg-purple-100 text-purple-600' :
+                                            'bg-orange-100 text-orange-600'
+                                        }`}>
+                                            {notif.type === 'grade' ? <TrendingUp size={18} /> :
+                                             notif.type === 'task' ? <Calendar size={18} /> :
+                                             notif.type === 'report' ? <PieChart size={18} /> :
+                                             <Bell size={18} />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-start">
+                                                <h4 className={`font-medium text-gray-800 ${!notif.read ? 'font-bold' : ''}`}>{notif.title}</h4>
+                                                {!notif.read && <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></span>}
+                                            </div>
+                                            <p className="text-sm text-gray-500">{notif.desc}</p>
+                                            <span className="text-xs text-gray-400">{notif.time}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'settings' && (
+                        <div className="max-w-2xl space-y-6">
+                            <h2 className="text-xl font-bold text-gray-800">{t.tabs.settings}</h2>
+
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                                <h3 className="font-bold text-gray-800 mb-4">Bildirishnoma sozlamalari</h3>
+                                <div className="space-y-4">
+                                    {[
+                                        { key: 'emailNotif', label: 'Email bildirishnomalar' },
+                                        { key: 'pushNotif', label: 'Push bildirishnomalar' },
+                                        { key: 'smsNotif', label: 'SMS bildirishnomalar' }
+                                    ].map(item => (
+                                        <div key={item.key} className="flex justify-between items-center py-2">
+                                            <span className="text-gray-700">{item.label}</span>
+                                            <div onClick={() => {
+                                                setParentSettings(prev => {
+                                                    const updated = { ...prev, [item.key]: !prev[item.key] };
+                                                    localStorage.setItem('parent_settings', JSON.stringify(updated));
+                                                    return updated;
+                                                });
+                                            }}
+                                                className="cursor-pointer relative"
+                                                style={{ width: '44px', height: '24px', borderRadius: '12px', background: parentSettings[item.key] ? '#10b981' : '#d1d5db', transition: 'background 0.2s' }}>
+                                                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2px', left: parentSettings[item.key] ? '22px' : '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                                <h3 className="font-bold text-gray-800 mb-4">Ogohlantirish turlari</h3>
+                                <div className="space-y-4">
+                                    {[
+                                        { key: 'gradeAlerts', label: 'Baho o\'zgarishlari' },
+                                        { key: 'attendanceAlerts', label: 'Davomat xabarlari' },
+                                        { key: 'taskAlerts', label: 'Vazifa muddatlari' },
+                                        { key: 'weeklyReport', label: 'Haftalik hisobot' }
+                                    ].map(item => (
+                                        <div key={item.key} className="flex justify-between items-center py-2">
+                                            <span className="text-gray-700">{item.label}</span>
+                                            <div onClick={() => {
+                                                setParentSettings(prev => {
+                                                    const updated = { ...prev, [item.key]: !prev[item.key] };
+                                                    localStorage.setItem('parent_settings', JSON.stringify(updated));
+                                                    return updated;
+                                                });
+                                            }}
+                                                className="cursor-pointer relative"
+                                                style={{ width: '44px', height: '24px', borderRadius: '12px', background: parentSettings[item.key] ? '#10b981' : '#d1d5db', transition: 'background 0.2s' }}>
+                                                <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2px', left: parentSettings[item.key] ? '22px' : '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                                <h3 className="font-bold text-gray-800 mb-4">Ekran vaqti nazorati</h3>
+                                <div className="flex justify-between items-center py-2">
+                                    <div>
+                                        <span className="text-gray-700">Ekran vaqtini cheklash</span>
+                                        <p className="text-xs text-gray-400 mt-1">Farzandlar uchun kunlik 2 soat limit</p>
+                                    </div>
+                                    <div onClick={() => {
+                                        setParentSettings(prev => {
+                                            const updated = { ...prev, screenTimeLimit: !prev.screenTimeLimit };
+                                            localStorage.setItem('parent_settings', JSON.stringify(updated));
+                                            return updated;
+                                        });
+                                    }}
+                                        className="cursor-pointer relative"
+                                        style={{ width: '44px', height: '24px', borderRadius: '12px', background: parentSettings.screenTimeLimit ? '#10b981' : '#d1d5db', transition: 'background 0.2s' }}>
+                                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2px', left: parentSettings.screenTimeLimit ? '22px' : '2px', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </main>

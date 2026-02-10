@@ -144,8 +144,6 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
       switch (role) {
         case 'admin':
         case 'moderator':
-          navigate('/crm'); // Assuming new CRM route
-          break;
         case 'organization':
           navigate('/organization-dashboard');
           break;
@@ -187,8 +185,7 @@ const RegisterModal = ({ isOpen, onClose, onSwitchToLogin }) => {
       // Redirect logic same as above
       const role = submitData.role;
       /* ... same switch ... */
-      if (role === 'moderator') navigate('/crm');
-      else if (role === 'organization') navigate('/organization-dashboard');
+      if (role === 'moderator' || role === 'organization') navigate('/organization-dashboard');
       else if (role === 'teacher') navigate('/teacher-dashboard');
       else if (role === 'parent') navigate('/parent-dashboard');
       else if (role === 'student') navigate('/student-dashboard');

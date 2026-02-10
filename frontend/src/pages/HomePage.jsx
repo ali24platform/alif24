@@ -45,17 +45,11 @@ const HomePage = () => {
     { id: 5, title: 'Xotira oʻyini', rating: 74, image: '/xotira.jpg', category: 'letters', type: 'games' },
     { id: 6, title: t.game_calc, rating: 78, image: '/matem.jpg', category: 'math', type: 'games' },
     { id: 7, title: 'AI Oʻqituvchi', rating: 87, image: '/texno.jpg', category: 'sonlar', type: 'lessons', premium: true },
-    { id: 8, title: 'Farm Building', rating: 83, image: '/uqish.jpg', category: 'tabiat', type: 'lessons', premium: true },
-    { id: 9, title: 'Desert Shooter', rating: 68, icon: <Crosshair size={48} className="text-red-400" />, category: 'harflar', type: 'games' },
-    { id: 10, title: 'War Plane', rating: 71, icon: <Plane size={48} className="text-blue-400" />, category: 'tabiat', type: 'games', premium: true },
-    { id: 11, title: 'Tetris', rating: 82, icon: <LayoutGrid size={48} className="text-yellow-400" />, category: 'sonlar', type: 'games' },
-    { id: 12, title: 'Fireboy & Watergirl', rating: 74, icon: <Flame size={48} className="text-orange-500" />, category: 'robot', type: 'lessons' },
-    { id: 13, title: 'FIFA World Cup', rating: 65, icon: <Trophy size={48} className="text-yellow-500" />, category: 'informatika', type: 'games' },
-    { id: 14, title: 'Card Games', rating: 90, icon: <FileStack size={48} className="text-green-400" />, category: 'math', type: 'lessons' },
-    { id: 15, title: '2048', rating: 88, icon: <Calculator size={48} className="text-purple-400" />, category: 'math', type: 'games' },
-    { id: 16, title: '2+3', rating: 55, icon: <Calculator size={48} className="text-blue-400" />, category: 'math', type: 'lessons' },
-    { id: 17, title: 'Alifbe Darsi', rating: 91, icon: <BookOpen size={48} className="text-indigo-400" />, category: 'alifbe', type: 'lessons' },
-    { id: 18, title: 'Robot Yasash', rating: 85, icon: <Bot size={48} className="text-gray-300" />, category: 'robot', type: 'lessons', premium: true },
+    { id: 8, title: 'Live Quiz', rating: 95, icon: <Trophy size={48} className="text-yellow-500" />, category: 'boshqalar', type: 'games' },
+    { id: 9, title: 'Tetris', rating: 82, icon: <LayoutGrid size={48} className="text-yellow-400" />, category: 'sonlar', type: 'games', comingSoon: true },
+    { id: 10, title: '2048', rating: 88, icon: <Calculator size={48} className="text-purple-400" />, category: 'math', type: 'games', comingSoon: true },
+    { id: 11, title: 'Alifbe Darsi', rating: 91, icon: <BookOpen size={48} className="text-indigo-400" />, category: 'alifbe', type: 'lessons', comingSoon: true },
+    { id: 12, title: 'Robot Yasash', rating: 85, icon: <Bot size={48} className="text-gray-300" />, category: 'robot', type: 'lessons', premium: true, comingSoon: true },
   ];
 
   // Sidebar kategoriyalari
@@ -77,21 +71,21 @@ const HomePage = () => {
   });
 
   const handleGameClick = (game) => {
-    // Direct routes for selected tiles - check these first
+    // Coming soon games
+    if (game.comingSoon) {
+      window.appAlert?.(`${game.title} tez orada ishga tushadi!`) || alert(`${game.title} tez orada ishga tushadi!`);
+      return;
+    }
+
+    // Direct routes for working games
     if (game.id === 1) return navigate('/smartkids-ai');
     if (game.id === 2) return navigate('/mathkids-ai');
     if (game.id === 3) return navigate('/harf');
     if (game.id === 4) return navigate('/rharf');
-    if (game.id === 6) return navigate('/games/math-monster');
     if (game.id === 5) return navigate('/games/letter-memory');
-
+    if (game.id === 6) return navigate('/games/math-monster');
     if (game.id === 7) return navigate('/ertak');
-
-    // These games don't have dedicated pages yet — show coming soon
-    if ([14, 15, 16, 17].includes(game.id)) {
-      window.appAlert?.(`${game.title} tez orada ishga tushadi!`) || alert(`${game.title} tez orada ishga tushadi!`);
-      return;
-    }
+    if (game.id === 8) return navigate('/join-quiz');
 
     // Check if user is authenticated and game is premium
     if (!isAuthenticated && game.premium) {

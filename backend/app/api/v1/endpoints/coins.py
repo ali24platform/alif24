@@ -90,6 +90,28 @@ async def claim_daily_bonus(
     return service.add_daily_bonus(current_user.id)
 
 
+class GameRewardRequest(BaseModel):
+    game_type: str = Field(..., description="math_monster, letter_memory, harf, etc.")
+    is_win: bool = Field(default=True)
+    score: int = Field(default=0, ge=0)
+
+
+@router.post("/game-reward", summary="Award Coins for Game")
+async def award_game_coins(
+    request: GameRewardRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Award coins after a game is completed.
+    +5 coins for win, 0 for loss.
+    """
+    service = CoinService(db)
+    import uuid
+    game_id = uuid.uuid4()
+    return service.add_coins_for_game(current_user.id, game_id, request.is_win)
+
+
 # ============================================================
 # WITHDRAWAL ENDPOINTS
 # ============================================================

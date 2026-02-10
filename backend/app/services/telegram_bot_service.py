@@ -348,7 +348,7 @@ Botdan foydalanish uchun quyidagi bo'limlarni tanlang:
 🏆 *Reyting* - Liderlar jadvali
 📞 *Yordam* - Admin bilan bog'lanish
 
-Muammo bo'lsa: +998 90 123 45 67"""
+Muammo bo'lsa: +998 90 957 20 55"""
 
     async def handle_myprofile(self, chat_id: str) -> str:
         """Handle /myprofile command"""

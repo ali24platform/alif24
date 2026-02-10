@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Common/Navbar';
+import coinService from '../services/coinService';
 import {
     BookOpen, Trophy, Clock, Star, Play, CheckCircle, Search, Filter,
     TrendingUp, Award, Target, Calendar, MessageSquare, Users, Bell,
@@ -26,6 +27,9 @@ const StudentDashboard = () => {
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [selectedBook, setSelectedBook] = useState(null);
     const [libraryFilter, setLibraryFilter] = useState('all');
+    const [coinBalance, setCoinBalance] = useState(null);
+    const [dailyBonusClaimed, setDailyBonusClaimed] = useState(false);
+    const [bonusMessage, setBonusMessage] = useState(null);
 
     useEffect(() => {
         const fetchDashboard = async () => {
@@ -44,7 +48,29 @@ const StudentDashboard = () => {
             }
         };
         fetchDashboard();
+        
+        // Fetch coin balance
+        coinService.getBalance().then(data => {
+            setCoinBalance(data);
+        }).catch(() => {});
     }, []);
+
+    const handleDailyBonus = async () => {
+        try {
+            const result = await coinService.claimDailyBonus();
+            if (result.coins_earned > 0) {
+                setBonusMessage(`+${result.coins_earned} coin!`);
+                setCoinBalance(prev => prev ? { ...prev, current_balance: result.new_balance } : prev);
+            } else {
+                setBonusMessage(result.message || 'Bugun bonus allaqachon olingan');
+            }
+            setDailyBonusClaimed(true);
+            setTimeout(() => setBonusMessage(null), 3000);
+        } catch (err) {
+            setBonusMessage('Xatolik yuz berdi');
+            setTimeout(() => setBonusMessage(null), 3000);
+        }
+    };
 
     const content = {
         uz: {
@@ -189,12 +215,12 @@ const StudentDashboard = () => {
                     <div className="relative z-10 animate-bounce">{user.monster}</div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
                         <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center text-2xl"><Coins size={24} className="text-yellow-600" /></div>
                         <div>
-                            <p className="text-gray-500 text-sm">{t.stats.points}</p>
-                            <h3 className="text-2xl font-bold text-gray-800">{user.points}</h3>
+                            <p className="text-gray-500 text-sm">Coinlar</p>
+                            <h3 className="text-2xl font-bold text-gray-800">{coinBalance?.current_balance ?? user.points}</h3>
                         </div>
                     </div>
                     <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
@@ -204,7 +230,22 @@ const StudentDashboard = () => {
                             <h3 className="text-2xl font-bold text-gray-800">{user.streak} kun</h3>
                         </div>
                     </div>
+                    <button onClick={handleDailyBonus} disabled={dailyBonusClaimed}
+                        className={`bg-white p-5 rounded-2xl shadow-sm border flex items-center gap-4 text-left transition-all ${dailyBonusClaimed ? 'border-green-200 bg-green-50' : 'border-yellow-200 hover:border-yellow-400 hover:shadow-md cursor-pointer'}`}>
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${dailyBonusClaimed ? 'bg-green-100' : 'bg-yellow-100 animate-pulse'}`}>
+                            {dailyBonusClaimed ? <CheckCircle size={24} className="text-green-600" /> : <Gift size={24} className="text-yellow-600" />}
+                        </div>
+                        <div>
+                            <p className="text-gray-500 text-sm">Kunlik bonus</p>
+                            <h3 className="text-lg font-bold text-gray-800">{dailyBonusClaimed ? 'Olingan' : '+5 coin'}</h3>
+                        </div>
+                    </button>
                 </div>
+                {bonusMessage && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 text-center text-yellow-800 font-medium animate-pulse">
+                        {bonusMessage}
+                    </div>
+                )}
 
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">

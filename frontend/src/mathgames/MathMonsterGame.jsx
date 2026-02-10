@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { Trophy, Star, Lock, CheckCircle, Play, ArrowLeft } from 'lucide-react';
+import { Trophy, Star, Lock, CheckCircle, Play, ArrowLeft, Coins } from 'lucide-react';
 import GuestGuard from '../components/Common/GuestGuard';
+import coinService from '../services/coinService';
 import './MathMonsterGame.css';
 
 const MatematikaSarguzashti = () => {
@@ -15,6 +16,7 @@ const MatematikaSarguzashti = () => {
   const [showCoins, setShowCoins] = useState(false);
   const [showLevelComplete, setShowLevelComplete] = useState(false);
   const [earnedStars, setEarnedStars] = useState(0);
+  const [earnedCoins, setEarnedCoins] = useState(0);
   
   const [levelStars, setLevelStars] = useState(() => {
     const saved = {};
@@ -229,6 +231,11 @@ const MatematikaSarguzashti = () => {
           setTotalScore(newScore);
           
           saveProgress(difficulty, newCompletedLevels[difficulty], newLevelStars[difficulty], newScore[difficulty]);
+          
+          // Backend coin reward
+          coinService.awardGameCoins('math_monster', true, correctAnswers + 1).then(res => {
+            if (res.coins_earned > 0) setEarnedCoins(res.coins_earned);
+          });
         }
       }, 2000);
     } else {
@@ -270,6 +277,15 @@ const MatematikaSarguzashti = () => {
           setTotalScore(newScore);
           
           saveProgress(difficulty, newCompletedLevels[difficulty], newLevelStars[difficulty], newScore[difficulty]);
+          
+          // Backend coin reward (even partial completion)
+          if (correctAnswers >= 5) {
+            coinService.awardGameCoins('math_monster', true, correctAnswers).then(res => {
+              if (res.coins_earned > 0) setEarnedCoins(res.coins_earned);
+            });
+          } else {
+            setEarnedCoins(0);
+          }
         }
       }, 1500);
     }
@@ -311,6 +327,7 @@ const MatematikaSarguzashti = () => {
     setShowLevelComplete(false);
     setCurrentLevel(null);
     setQuestion(null);
+    setEarnedCoins(0);
   };
 
   const backToDifficulties = () => {
@@ -544,6 +561,12 @@ const MatematikaSarguzashti = () => {
                   />
                 ))}
               </div>
+              {earnedCoins > 0 && (
+                <div className="earned-coins-display" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',margin:'12px 0',padding:'8px 16px',background:'#FEF3C7',borderRadius:'12px',border:'1px solid #FDE68A'}}>
+                  <Coins size={20} style={{color:'#D97706'}} />
+                  <span style={{fontWeight:'bold',color:'#92400E',fontSize:'1.1rem'}}>+{earnedCoins} coin</span>
+                </div>
+              )}
               <button
                 onClick={closeLevelComplete}
                 className="continue-button"

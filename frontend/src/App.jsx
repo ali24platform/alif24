@@ -24,6 +24,8 @@ import KidsReadingPlatformMobile from './ertak/ertak';
 import SmartKidsAI from './pages/SmartKidsAI';
 import MathKidsAI from './pages/MathKidsAI';
 import DashboardLayout from './components/Dashboard/DashboardLayout';
+import LiveQuizStudent from './pages/LiveQuizStudent';
+import LiveQuizTeacher from './pages/LiveQuizTeacher';
 import TestCreator from './test/TestCreator';
 import SmartAuthPrompt from './components/Auth/SmartAuthPrompt';
 import LoginModal from './components/Auth/LoginModal';
@@ -153,6 +155,18 @@ const AppRoutes = () => {
 
       {/* SmartKids AI */}
       <Route path="/smartkids-ai" element={<SmartKidsAI />} />
+
+      {/* Live Quiz */}
+      <Route path="/join-quiz" element={
+        <ProtectedRoute allowedRoles={['student', 'organization', 'moderator']}>
+          <LiveQuizStudent />
+        </ProtectedRoute>
+      } />
+      <Route path="/live-quiz/create" element={
+        <ProtectedRoute allowedRoles={['teacher', 'organization', 'moderator']}>
+          <LiveQuizTeacher />
+        </ProtectedRoute>
+      } />
 
       {/* MathKids AI */}
       <Route path="/mathkids-ai" element={<MathKidsAI />} />

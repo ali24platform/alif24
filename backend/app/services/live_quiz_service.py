@@ -331,6 +331,7 @@ class LiveQuizService:
         if existing:
             return {
                 "message": "Siz allaqachon qo'shilgansiz",
+                "quiz_id": str(quiz.id),
                 "quiz_title": quiz.title
             }
         
@@ -348,6 +349,7 @@ class LiveQuizService:
         
         return {
             "message": "Muvaffaqiyatli qo'shildingiz!",
+            "quiz_id": str(quiz.id),
             "quiz_title": quiz.title,
             "participant_id": str(participant.id)
         }

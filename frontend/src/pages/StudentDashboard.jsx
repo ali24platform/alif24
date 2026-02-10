@@ -21,6 +21,9 @@ const StudentDashboard = () => {
     const { user: authUser } = useAuth();
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [timer, setTimer] = useState(0);
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
 
     useEffect(() => {
         const fetchDashboard = async () => {

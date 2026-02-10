@@ -30,7 +30,7 @@ class TeacherTest(Base):
     
     # O'qituvchi va dars
     teacher_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    lesson_id = Column(UUID(as_uuid=True), ForeignKey("lessons.id"), nullable=True) # Fixed: teacher_lessons -> lessons
+    lesson_id = Column(UUID(as_uuid=True), ForeignKey("teacher_lessons.id"), nullable=True)
     classroom_id = Column(UUID(as_uuid=True), ForeignKey("classrooms.id"), nullable=True)
     
     # Test structure
@@ -70,7 +70,7 @@ class TeacherTest(Base):
     
     # Relationships
     teacher = relationship("User", foreign_keys=[teacher_id])
-    lesson = relationship("Lesson", back_populates="quiz")
+    lesson = relationship("TeacherLesson", back_populates="tests")
     classroom = relationship("Classroom", backref="tests")
     results = relationship("TestResult", back_populates="test", cascade="all, delete-orphan")
 

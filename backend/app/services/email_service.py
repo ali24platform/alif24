@@ -1,5 +1,7 @@
 import logging
-import emails
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -16,13 +18,21 @@ class EmailData:
 class EmailService:
     def __init__(self):
         self.emails_enabled = settings.EMAILS_ENABLED
-        self.sender = (settings.EMAILS_FROM_NAME, settings.EMAILS_FROM_EMAIL)
+        self.sender_name = settings.EMAILS_FROM_NAME
+        self.sender_email = settings.EMAILS_FROM_EMAIL
 
     def render_email_template(self, *, template_name: str, context: dict[str, Any]) -> str:
-        template_path = Path(__file__).parent.parent / "email-templates" / "build" / template_name
-        template_str = template_path.read_text()
-        html_content = Template(template_str).render(context)
-        return html_content
+        try:
+            template_path = Path(__file__).parent.parent / "email-templates" / "build" / template_name
+            if not template_path.exists():
+                logger.warning(f"Email template not found: {template_path}")
+                return f"<html><body>{str(context)}</body></html>"
+            template_str = template_path.read_text()
+            html_content = Template(template_str).render(context)
+            return html_content
+        except Exception as e:
+            logger.error(f"Error rendering template {template_name}: {e}")
+            return ""
 
     def send_email(
         self,
@@ -35,25 +45,37 @@ class EmailService:
             logger.warning("Email sending is disabled in settings.")
             return
 
-        message = emails.Message(
-            subject=subject,
-            html=html_content,
-            mail_from=self.sender,
-        )
-        
-        smtp_options = {"host": settings.SMTP_HOST, "port": settings.SMTP_PORT}
-        if settings.SMTP_TLS:
-            smtp_options["tls"] = True
-        elif settings.SMTP_SSL:
-            smtp_options["ssl"] = True
-            
-        if settings.SMTP_USER:
-            smtp_options["user"] = settings.SMTP_USER
-        if settings.SMTP_PASSWORD:
-            smtp_options["password"] = settings.SMTP_PASSWORD
+        try:
+            message = MIMEMultipart("alternative")
+            message["Subject"] = subject
+            message["From"] = f"{self.sender_name} <{self.sender_email}>"
+            message["To"] = email_to
 
-        response = message.send(to=email_to, smtp=smtp_options)
-        logger.info(f"Send email result: {response}")
+            part = MIMEText(html_content, "html")
+            message.attach(part)
+
+            if not settings.SMTP_HOST:
+                logger.warning("SMTP_HOST not configured, skipping email send.")
+                return
+
+            # Connect to SMTP Server
+            if settings.SMTP_TLS:
+                server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
+                server.starttls()
+            elif settings.SMTP_SSL:
+                server = smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT)
+            else:
+                server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT)
+
+            if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+
+            server.sendmail(self.sender_email, email_to, message.as_string())
+            server.quit()
+            logger.info(f"Email sent to {email_to}")
+
+        except Exception as e:
+            logger.error(f"Failed to send email to {email_to}: {e}")
 
     def send_test_email(self, email_to: str) -> None:
         subject = f"{settings.PROJECT_NAME} - Test email"

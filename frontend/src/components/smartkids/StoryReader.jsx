@@ -650,12 +650,16 @@ export default function StoryReader({ storyText, age = 7 }) {
     const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfigRef.current, audioConfig);
     synthesizerRef.current = synthesizer;
     
-    synthesizer.speakTextAsync(
-      text,
+    const langCode = detectedLanguageRef.current?.code || 'uz-UZ';
+    const voiceName = detectedLanguageRef.current?.voice || 'uz-UZ-MadinaNeural';
+    const escapedText = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${langCode}"><voice name="${voiceName}"><prosody rate="-30%" pitch="-5%">${escapedText}</prosody></voice></speak>`;
+
+    synthesizer.speakSsmlAsync(
+      ssml,
       (result) => {
         if (result.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
           console.log("📝 Sintez tugadi. Audio uzunligi (ticks):", result.audioDuration);
-          // Navbatni siljitish SpeakerAudioDestination.onAudioEnd orqali bo'ladi
         } else {
           console.error("⚠️ Sintez bekor qilindi:", result.errorDetails);
           isSpeakingRef.current = false;
@@ -669,7 +673,6 @@ export default function StoryReader({ storyText, age = 7 }) {
           } catch (_) {}
           speakerDestinationRef.current = null;
 
-          // Xato bo'lsa ham stuck bo'lib qolmasin
           setAudioQueue((prev) => prev.slice(1));
         }
       },
@@ -686,7 +689,6 @@ export default function StoryReader({ storyText, age = 7 }) {
         } catch (_) {}
         speakerDestinationRef.current = null;
 
-        // Xato bo'lsa ham stuck bo'lib qolmasin
         setAudioQueue((prev) => prev.slice(1));
       }
     );

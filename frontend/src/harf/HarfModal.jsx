@@ -320,9 +320,11 @@ const HarfModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChange
             const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfigRef.current, sdkAudioConfig);
             synthesizerRef.current = synthesizer;
 
+            const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="uz-UZ"><voice name="uz-UZ-MadinaNeural"><prosody rate="-30%" pitch="-5%">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</prosody></voice></speak>`;
+
             const audioArrayBuffer = await new Promise((resolve, reject) => {
-                synthesizer.speakTextAsync(
-                    text,
+                synthesizer.speakSsmlAsync(
+                    ssml,
                     (result) => {
                         try { synthesizer.close(); } catch (_) {}
                         if (synthesizerRef.current === synthesizer) synthesizerRef.current = null;

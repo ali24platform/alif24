@@ -227,9 +227,11 @@ const EharfModal = ({ isOpen, onClose, card, externalTranscript, onAskStateChang
       const synthesizer = new SpeechSDK.SpeechSynthesizer(speechConfigRef.current, sdkAudioConfig);
       synthesizerRef.current = synthesizer;
 
+      const ssml = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US"><voice name="en-US-JennyNeural"><prosody rate="-30%" pitch="-5%">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</prosody></voice></speak>`;
+
       const audioArrayBuffer = await new Promise((resolve, reject) => {
-        synthesizer.speakTextAsync(
-          text,
+        synthesizer.speakSsmlAsync(
+          ssml,
           (result) => {
             try { synthesizer.close(); } catch (_) {}
             if (synthesizerRef.current === synthesizer) synthesizerRef.current = null;

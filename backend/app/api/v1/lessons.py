@@ -6,6 +6,7 @@ from uuid import UUID
 from app.core.database import get_db
 from app.services.lesson_service import LessonService
 from app.middleware.deps import get_current_active_user
+from app.middleware import deps
 from app.models import User, UserRole
 
 router = APIRouter()
@@ -72,7 +73,7 @@ def create_lesson(
     title: str = Form(...),
     title_uz: str = Form(...),
     title_ru: str = Form(...),
-    subject_id: uuid.UUID = Form(...),
+    subject_id: UUID = Form(...),
     description: str = Form(None),
     level: int = Form(1),
     current_user: User = Depends(deps.require_verified_teacher),

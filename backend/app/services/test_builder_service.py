@@ -3,7 +3,10 @@ import json
 import logging
 from typing import List, Dict, Optional, Any
 from fastapi import UploadFile, HTTPException
-import docx
+try:
+    import docx
+except ImportError:
+    docx = None
 from pypdf import PdfReader
 import io
 import openai
@@ -44,6 +47,8 @@ class TestBuilderService:
             file_stream = io.BytesIO(file_content)
             
             if filename.endswith('.docx'):
+                if docx is None:
+                    raise HTTPException(status_code=400, detail="DOCX parsing is not supported in this environment (dependency missing).")
                 doc = docx.Document(file_stream)
                 content = "\n".join([para.text for para in doc.paragraphs])
             elif filename.endswith('.pdf'):
